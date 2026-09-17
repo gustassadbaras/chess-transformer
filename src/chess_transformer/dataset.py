@@ -1,42 +1,51 @@
 import torch
 from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
 import json
 
-from .tokenizer import UCITokenizer
+import config
 
 class ChessDataset(Dataset):
-    def __init__(self, uci_path, tokenizer):
+    def __init__(self, uci_path, tokenizer, max_sequence_length):
+        assert max_sequence_length % 3 == 1, (
+            "max_sequence_length mod 3 must equal 1. "
+            "(<|BOS|> + complete 3-token moves)."
+        )
         self.tokenizer = tokenizer
+        self.max_sequence_length = max_sequence_length
+        self.vocab_size = len(tokenizer.token2id)
         self.games = []
 
         with open(uci_path, "r", encoding="utf-8") as f:
             for line in f:
                 game_moves = json.loads(line)['moves_uci']
                 encoded_game_moves = self.tokenizer.encode(game_moves)
+                del encoded_game_moves[max_sequence_length:]
                 self.games.append(encoded_game_moves)
 
     def __len__(self):
         return len(self.games)
 
-    def __getitem__(self, idx):
-        game = self.games[idx]
-        inputs = [self.tokenizer.BOS_IDX] + game[:-1]
+    def __getitem__(self, id):
+        game = self.games[id]
+        inputs = [self.tokenizer.BOS_ID] + game[:-1] # this could be done in __init__()
         targets = game
 
         return torch.tensor(inputs, dtype=torch.long), torch.tensor(targets, dtype=torch.long)
 
-if __name__ == "__main__":
-    # These files are obtained by running scripts/download_data.py
-    uci_train_path = "data/subset_100.jsonl"
-    uci_val_path = "data/subset_10.jsonl"
-    tokenizer = UCITokenizer(uci_train_path)
+def pad_collate_fn(batch):
+    inputs, targets = zip(*batch)
 
-    train_dataset = ChessDataset(uci_train_path, tokenizer)
-    val_dataset = ChessDataset(uci_val_path, tokenizer)
+    padded_inputs = pad_sequence(
+        inputs,
+        batch_first=True,
+        padding_value=config.PAD_TOKEN_ID
+    )
 
-    train_sample = train_dataset.__getitem__(0)
-
-    print("Input moves:")
-    print(train_sample[0])
-    print("Target moves:")
-    print(train_sample[1])
+    padded_targets = pad_sequence(
+        targets,
+        batch_first=True,
+        padding_value=config.PAD_TOKEN_ID
+    )
+    
+    return padded_inputs, padded_targets
