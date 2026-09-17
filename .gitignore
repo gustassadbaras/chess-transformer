@@ -1,6 +1,18 @@
-# Data stuff
-data/*
 
+!data/
+!models/
+!experiments/
+
+data/*
+models/*
+experiments/*
+scripts/test.py
+
+!data/10_game_subset.jsonl
+!experiments/.gitkeep
+!models/.gitkeep
+
+## Defaults
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
