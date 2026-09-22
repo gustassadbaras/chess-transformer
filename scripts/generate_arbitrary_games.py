@@ -1,8 +1,9 @@
 import json
 import random
 import sys
-
 import chess
+
+import config
 
 # Usage:
 # generate_arbitrary_games.py 
@@ -42,7 +43,7 @@ if max_game_length <= 0:
 
 random.seed(random_seed)
 
-output_path = f"data/arbitrary_games_{num_games}_{min_game_length}_{max_game_length}_{random_seed}.jsonl"
+output_path = config.ARBITRARY_GAME_PATH
 
 with open(output_path, "w", encoding="utf-8") as f:
     for _ in range(num_games):

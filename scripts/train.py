@@ -12,19 +12,6 @@ from src.chess_transformer.tokenizer import UCITokenizer
 from src.chess_transformer.transformer import Transformer
 import config
 
-"""
-### TODO
-[DONE] - Resolve MAX_SEQUENCE_LENGTH concerns;
-[DONE] - Write logger.py and checkpoint.py;
-[DONE] - Modify download_data.py to split data into train/val/test sets (optionally, through cli args);
-[DONE] - Improve validation metrics - winrate against engine, illegal move probability mass perhaps;
-[DONE] - logging gradient norms might be good.
-[DONE ]- Add GPU support for training;
-[DONE] - ".src" should be unecessary in imports?
-- Improve naming;
-- Last: re-run and re-check all code;
-"""
-
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -5,10 +5,10 @@ import random
 import math
 
 # Usage:
-# python -m scripts.download_data.py 
+# python -m scripts.download_data
 # <number of games to download> <train set fraction> <val set fraction> <test set fraction>
 # e.g.
-# download_data.py 10000, 0.6, 0.3, 0.1
+# python -m download_data_uci 10000 0.6 0.3 0.1
 # NOTE: use only once (or with caution) so as to not 'contaminate' validation/test sets.
 
 if len(sys.argv) != 5:

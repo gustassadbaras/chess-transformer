@@ -44,7 +44,6 @@ class Experiment():
 
         return logger
 
-    # Shouldn't this be in logger.py?
     def log_metrics(self, epoch, global_step, 
                     train_loss, val_loss,
                     winrate, illegal_probability_mass):
@@ -73,7 +72,6 @@ class Experiment():
             ])
 
     def log_grad_norms(self, model, epoch, global_step):
-        # getting gradient norms
         grad_norms = {}
 
         for name, module in model.named_modules():
@@ -92,7 +90,7 @@ class Experiment():
 
             grad_norms[name] = squared_norm ** 0.5
 
-        # logging to file
+
         file_exists = self.grad_norm_file_path.exists()
 
         with self.grad_norm_file_path.open("a", newline="") as f:
@@ -123,5 +121,5 @@ class Experiment():
                         tokenizer, 
                         epoch,
                         global_step,
-                        val_loss, # omitting training loss because it doesn't seem useful here, val loss might be important for picking tho?
+                        val_loss,
                         path)

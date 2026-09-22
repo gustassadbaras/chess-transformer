@@ -6,6 +6,11 @@ import math
 class SelfAttentionLayer(nn.Module):
     def __init__(self, num_heads, d_model, max_sequence_length):
         super().__init__()
+        if d_model % num_heads != 0:
+            raise ValueError(
+            "d_model must be divisible by num_heads: "
+            f"got d_model={d_model}, num_heads={num_heads}"
+        )
         self.d_KQ = d_model // num_heads
         self.d_V = d_model // num_heads
         self.num_heads = num_heads

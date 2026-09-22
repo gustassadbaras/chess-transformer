@@ -134,11 +134,12 @@ def simulate_game(model, tokenizer, engine_path, elo, seconds_per_engine_move):
 
     return board, outcome
 
+# For testing
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model, tokenizer, optimizer, _ = load_checkpoint(
-        r"experiments\exp_test_2026-09-16_15-29-24\checkpoints\21.pth",
+        r"path-to-checkpoint-pth",
         device)
 
     ELO = 1320

@@ -70,7 +70,7 @@ def estimate_teacher_forced_illegal_probability_mass(model,
             probability_previous = 1.0
 
             for i in range(3):
-                legal_token_ids = get_legal_token_ids(board, x.tolist(), tokenizer) # tolist() expensive perhaps?
+                legal_token_ids = get_legal_token_ids(board, x.tolist(), tokenizer)
 
                 logits = model.forward(x.unsqueeze(0))[0, -1]
                 probabilities = torch.softmax(logits, dim=-1)
