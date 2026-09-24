@@ -27,13 +27,27 @@ class SelfAttentionLayer(nn.Module):
         attention_mask = torch.ones(max_sequence_length, max_sequence_length).triu(diagonal=1)
         self.register_buffer("attention_mask", attention_mask)
 
-    def forward(self, x):
+    def apply_rotations(self, x, pe_sin, pe_cos):
+        x_even = x[..., 0::2]
+        x_odd = x[..., 1::2]
+
+        x_even_rotated = x_even * pe_cos - x_odd * pe_sin
+        x_odd_rotated = x_even * pe_sin + x_odd * pe_cos
+
+        x = torch.stack((x_even_rotated, x_odd_rotated), dim=-1).flatten(-2)
+
+        return x
+
+    def forward(self, x, pe_cos, pe_sin):
         B, T, _ = x.shape
 
         # Shapes should be (B, num_heads, T, d_KQ or d_V)
         Q = self.W_Q(x).view(B, T, self.num_heads, self.d_KQ).transpose(1, 2)
         K = self.W_K(x).view(B, T, self.num_heads, self.d_KQ).transpose(1, 2)
         V = self.W_V(x).view(B, T, self.num_heads, self.d_V).transpose(1, 2)
+
+        Q = self.apply_rotations(Q, pe_sin, pe_cos)
+        K = self.apply_rotations(K, pe_sin, pe_cos)
 
         scaled_attention_scores = torch.matmul(Q, K.transpose(-1,-2)) / self.sqrt_d_KQ
         masked_scaled_attention_scores = scaled_attention_scores.masked_fill(
