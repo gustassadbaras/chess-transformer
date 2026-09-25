@@ -14,7 +14,7 @@ def save_checkpoint(model,
                 "global_step" : global_step,
                 "val_loss" : val_loss,
                 "model_state_dict" : model.state_dict(),
-                "optimizer" : optimizer, # saving the entire optimizer for simplicity (for now)
+                "optimizer_state_dict" : optimizer.state_dict(), # Assuming Adam is used 
                 "model_params": {
                     "num_layers" : config.NUM_LAYERS,
                     "num_heads" : config.NUM_HEADS,
@@ -26,16 +26,28 @@ def save_checkpoint(model,
                 },
                 path)
 
+# Assumes scheduler isn't used
 def load_checkpoint(checkpoint_path, device):
     checkpoint = torch.load(
         checkpoint_path, 
         map_location=device,
         weights_only=False
         )
-    tokenizer = checkpoint['tokenizer']
-    optimizer = checkpoint['optimizer']
     model = Transformer(**checkpoint['model_params'])
     model.load_state_dict(checkpoint['model_state_dict'])
-    epoch = checkpoint['epoch']
 
-    return model, tokenizer, optimizer, epoch
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=config.LEARNING_RATE
+    )
+    optimizer.load_state_dict(
+        checkpoint['optimizer_state_dict']
+        )
+    return (
+        model,
+        checkpoint["tokenizer"],
+        optimizer,
+        checkpoint["epoch"],
+        checkpoint["global_step"],
+        checkpoint["val_loss"],
+    )

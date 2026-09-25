@@ -1,5 +1,5 @@
 # Experiment tracking settings
-EXPERIMENT_TITLE = "first_experiment"
+EXPERIMENT_TITLE = "RoPE"
 
 EPOCHS_PER_SAVE = 5
 
