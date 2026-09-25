@@ -32,7 +32,7 @@ def main():
                         config.D_MODEL,
                         config.MAX_SEQUENCE_LENGTH).to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(ignore_index=config.PAD_TOKEN_ID)
     optimizer = optim.Adam(model.parameters(), 
                            config.LEARNING_RATE) # More configuration would be nice
 
