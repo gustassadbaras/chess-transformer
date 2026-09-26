@@ -25,13 +25,15 @@ class Transformer(nn.Module):
         self.linear = nn.Linear(d_model, vocab_size)
 
         # Positional encodings & embeddings
-        half_d = d_model // 2
-        exponents = -torch.log(torch.tensor(10000)) * torch.arange(half_d) / half_d
+        pe_dim = d_model // (2 * num_heads)
+        exponents = -torch.log(torch.tensor(10000)) * torch.arange(pe_dim) / pe_dim
         frequencies = torch.exp(exponents)
         angles = torch.arange(max_sequence_length)[:, None] * frequencies[None, :]
 
-        sinusoidal_encodings = torch.cat((torch.sin(angles), torch.cos(angles)), dim=1)
-        self.register_buffer("sinusoidal_encodings", sinusoidal_encodings)
+        sin_encodings = torch.sin(angles)
+        cos_encodings = torch.cos(angles)
+        self.register_buffer("pe_sin", sin_encodings)
+        self.register_buffer("pe_cos", cos_encodings)
 
         self.Embedding = nn.Embedding(vocab_size, d_model)
 
@@ -42,12 +44,12 @@ class Transformer(nn.Module):
     def forward(self, x):
         T = x.shape[-1]
 
-        x = self.Embedding(x) + self.sinusoidal_encodings[None, :T, :]
+        x = self.Embedding(x)
 
         for layer in self.self_attention_layers:
             residual_connection = x
-            x = layer(x)
-            x = self.LayerNorm1(x + residual_connection)
+            x = layer(x, self.pe_sin[:T, ...], self.pe_cos[:T, ...])
+            x = self.LayerNorm1(x + residual_connection) # NOTE: Feels like each layer should have a separate layernorm.
 
         residual_connection = x
 
