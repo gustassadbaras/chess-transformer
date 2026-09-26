@@ -1,26 +1,22 @@
-# Experiment tracking settings
-EXPERIMENT_TITLE = "RoPE"
-
-EPOCHS_PER_SAVE = 5
-
-ESTIMATE_WINRATE = True
-EPOCHS_PER_WINRATE_ESTIMATE = 3
-GAMES_PER_WINRATE_ESTIMATE = 5
-
-ESTIMATE_ILLEGAL_PROBABILITY_MASS = True
-EPOCHS_PER_ILLEGAL_PROBABILITY_MASS_ESTIMATE = 3
-
-EPOCHS_PER_GRAD_NORM_LOG = 5
-
 # Optimization settings
 NUM_EPOCHS = 50
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 
+# Experiment tracking settings
+EXPERIMENT_TITLE = "main"
+
+TRAINING_EXAMPLES_PER_METRIC_LOG = 5e4 # *Approximately* this many training examples
+GLOBAL_STEPS_PER_METRIC_LOG = max(TRAINING_EXAMPLES_PER_METRIC_LOG // BATCH_SIZE, 1)
+
+ESTIMATE_WINRATE = False # Winrate is a very expensive metric, arguably unecessary for now
+ESTIMATE_ILLEGAL_PROBABILITY_MASS = True
+GAMES_PER_WINRATE_ESTIMATE = 10
+
 # Transformer settings
-NUM_LAYERS = 4
-NUM_HEADS = 4 
-D_MODEL = 128 # Must be a multiple of NUM_HEADS
+NUM_LAYERS = 6
+NUM_HEADS = 6
+D_MODEL = 144 # Must be a multiple of NUM_HEADS
 MAX_SEQUENCE_LENGTH = 3 * 512 + 1 # Must be of form 3k + 1 where k is a natural number
 
 # Tokenizer settings
