@@ -84,7 +84,7 @@ def main():
                 experiment.logger.info("Estimating illegal probability mass...")
                 illegal_probability_mass = estimate_teacher_forced_illegal_probability_mass(model,
                                                                                             tokenizer,
-                                                                                            config.ARBITRARY_GAME_PATH)
+                                                                                            config.RANDOM_GAME_PATH)
             if epoch % config.EPOCHS_PER_SAVE == 0:
                 experiment.save_checkpoint(model, optimizer, tokenizer,
                                         epoch, global_step, val_loss)

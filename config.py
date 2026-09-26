@@ -1,7 +1,7 @@
 # Experiment tracking settings
-EXPERIMENT_TITLE = "first_experiment"
+EXPERIMENT_TITLE = "single-token-per-move"
 
-EPOCHS_PER_SAVE = 5
+EPOCHS_PER_SAVE = 5 # Might want this to align with estimate frequencies
 
 ESTIMATE_WINRATE = True
 EPOCHS_PER_WINRATE_ESTIMATE = 3
@@ -13,7 +13,7 @@ EPOCHS_PER_ILLEGAL_PROBABILITY_MASS_ESTIMATE = 3
 EPOCHS_PER_GRAD_NORM_LOG = 5
 
 # Optimization settings
-NUM_EPOCHS = 50
+NUM_EPOCHS = 100
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 
@@ -21,18 +21,16 @@ LEARNING_RATE = 1e-3
 NUM_LAYERS = 4
 NUM_HEADS = 4 
 D_MODEL = 128 # Must be a multiple of NUM_HEADS
-MAX_SEQUENCE_LENGTH = 3 * 512 + 1 # Must be of form 3k + 1 where k is a natural number
+MAX_SEQUENCE_LENGTH = 512
 
 # Tokenizer settings
 PAD_TOKEN_ID = 0
 BOS_TOKEN_ID = 1
 UNK_TOKEN_ID = 2
-SKIP_TOKEN_ID = 3
 
 PAD_TOKEN = "<|PAD|>"
 UNK_TOKEN = "<|UNK|>"
 BOS_TOKEN = "<|BOS|>"
-SKIP_TOKEN = "<|SKIP|>"
 
 # Engine settings
 ENGINE_PATH = "stockfish"
@@ -43,4 +41,4 @@ ENGINE_ELO = 1350
 UCI_TRAIN_DATA_PATH = "data/train.jsonl"
 UCI_VAL_DATA_PATH = "data/val.jsonl"
 UCI_TEST_DATA_PATH = "data/test.jsonl"
-ARBITRARY_GAME_PATH = "data/arbitrary_games.jsonl"
+RANDOM_GAME_PATH = "data/random_games.jsonl"
