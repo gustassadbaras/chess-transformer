@@ -13,16 +13,6 @@ from src.chess_transformer.tokenizer import UCITokenizer
 from src.chess_transformer.transformer import Transformer
 import config
 
-"""
-TODO:
-DONE * Make training loop nicer by splitting things into classes/functions, externalizing checkpointing, etc.;
-DONE * Add option to train.py to resume training;
-DONE * Test to ensure everything works;
-* Commit and push to main;
-* Merge single-token-per-move onto main (or the other way around?);
-* Train single-token-per-move for the rest of the evening;
-(relax)
-"""
 
 def calculate_val_loss(model, criterion, val_loader, device):
     was_training = model.training
