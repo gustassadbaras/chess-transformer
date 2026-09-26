@@ -1,18 +1,29 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader
+import sys
+from pathlib import Path
 
+
+from src.chess_transformer.checkpoint import load_checkpoint
 from src.chess_transformer.experiment_tracker import Experiment
 from src.chess_transformer.validation_metrics import estimate_winrate, estimate_teacher_forced_illegal_probability_mass
 from src.chess_transformer.dataset import ChessDataset
 from src.chess_transformer.dataset import pad_collate_fn
 from src.chess_transformer.tokenizer import UCITokenizer
-from src.chess_transformer.transformer import Transformer
 import config
 
 
 def main():
+    if len(sys.argv) != 2:
+        raise SystemExit(f"Usage: python {sys.argv[0]} <checkpoint_path>")
+
+    checkpoint_path = Path(sys.argv[1])
+
+    if not checkpoint_path.exists():
+        raise SystemExit(f"Checkpoint does not exist: {checkpoint_path}")
+
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     experiment = Experiment(config.EXPERIMENT_TITLE)
@@ -25,19 +36,19 @@ def main():
     train_loader = DataLoader(train_set, config.BATCH_SIZE, shuffle=True, collate_fn=pad_collate_fn, num_workers=2)
     val_loader = DataLoader(val_set, config.BATCH_SIZE, shuffle=False, collate_fn=pad_collate_fn, num_workers=2)
 
-    model = Transformer(config.NUM_LAYERS, 
-                        config.NUM_HEADS, 
-                        tokenizer.vocab_size,
-                        config.D_MODEL,
-                        config.MAX_SEQUENCE_LENGTH).to(device)
-
-    criterion = nn.CrossEntropyLoss(ignore_index=config.PAD_TOKEN_ID)
-    optimizer = optim.Adam(model.parameters(), 
-                           config.LEARNING_RATE) # More configuration would be nice
-
+    try:
+        model, tokenizer, optimizer, epoch, global_step, val_loss = load_checkpoint(
+            checkpoint_path,
+            device
+        )
+        criterion = nn.CrossEntropyLoss(ignore_index=config.PAD_TOKEN_ID)
+        print(f"Successfully loaded checkpoint. Continuing from epoch {epoch}, global step {global_step} with validation loss of {val_loss}")
+    except Exception as e:
+        print(f"Encountered issue loading checkpoint: {e}")
+        return 
 
     global_step = 0
-    for epoch in range(1, config.NUM_EPOCHS + 1):
+    for epoch in range(epoch+1, config.NUM_EPOCHS + 1):
         model.train()
         train_loss = 0
         val_loss = 0
@@ -83,7 +94,7 @@ def main():
                 experiment.logger.info("Estimating illegal probability mass...")
                 illegal_probability_mass = estimate_teacher_forced_illegal_probability_mass(model,
                                                                                             tokenizer,
-                                                                                            config.RANDOM_GAME_PATH)
+                                                                                            config.ARBITRARY_GAME_PATH)
             if epoch % config.EPOCHS_PER_SAVE == 0:
                 experiment.save_checkpoint(model, optimizer, tokenizer,
                                         epoch, global_step, val_loss)
