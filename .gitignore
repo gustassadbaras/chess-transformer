@@ -8,7 +8,7 @@ models/*
 experiments/*
 scripts/test.py
 
-!data/10_game_subset.jsonl
+!data/overfit_test_set.parquet
 !experiments/.gitkeep
 !models/.gitkeep
 
