@@ -37,4 +37,4 @@ ENGINE_ELO = 1350
 UCI_TRAIN_DATA_PATH = "data/train_set.parquet"
 UCI_VAL_DATA_PATH = "data/val_set.parquet"
 UCI_HOLDOUT_DATA_PATH = "data/holdout_set.parquet"
-ARBITRARY_GAME_PATH = "data/arbitrary_games.jsonl"
+RANDOM_GAME_PATH = "data/random_games.jsonl"
