@@ -1,10 +1,10 @@
 # Optimization settings
-NUM_EPOCHS = 50
+NUM_EPOCHS = 100
 BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 
 # Experiment tracking settings
-EXPERIMENT_TITLE = "main"
+EXPERIMENT_TITLE = "single-token-per-move"
 
 TRAINING_EXAMPLES_PER_METRIC_LOG = 5e4
 GLOBAL_STEPS_PER_METRIC_LOG = max(TRAINING_EXAMPLES_PER_METRIC_LOG // BATCH_SIZE, 1)
@@ -17,19 +17,16 @@ GAMES_PER_WINRATE_ESTIMATE = 10
 NUM_LAYERS = 6
 NUM_HEADS = 6
 D_MODEL = 144 # Must be a multiple of NUM_HEADS
-# 692 = max number of moves (formally half-moves) in the dataset I am using
-MAX_SEQUENCE_LENGTH = 3 * 692 + 1 # Must be of form 3k + 1 where k is a natural number 
+MAX_SEQUENCE_LENGTH = 512
 
 # Tokenizer settings
 PAD_TOKEN_ID = 0
 BOS_TOKEN_ID = 1
 UNK_TOKEN_ID = 2
-SKIP_TOKEN_ID = 3
 
 PAD_TOKEN = "<|PAD|>"
 UNK_TOKEN = "<|UNK|>"
 BOS_TOKEN = "<|BOS|>"
-SKIP_TOKEN = "<|SKIP|>"
 
 # Engine settings
 ENGINE_PATH = "stockfish"

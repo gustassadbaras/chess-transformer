@@ -6,11 +6,11 @@ import chess
 import config
 
 # Usage:
-# generate_arbitrary_games.py 
+# generate_random_games.py 
 # <number of games> <minimum number of moves per game><maximum number of moves per game> <random seed>
 #
 # Example:
-# generate_arbitrary_games.py 1000 10 100 42
+# generate_random_games.py 1000 10 100 42
 #
 # Each move is sampled uniformly from the currently legal moves.
 # Games end when the position is game-over or the maximum game length is reached.
@@ -22,7 +22,7 @@ try:
     random_seed = int(sys.argv[4])
 except (IndexError, ValueError):
     print(
-        "Usage: generate_arbitrary_games.py "
+        "Usage: generate_random_games.py "
         "<number of games> <minimum number of moves> <maximum number of moves> <random seed>"
     )
     sys.exit(1)
@@ -43,7 +43,7 @@ if max_game_length <= 0:
 
 random.seed(random_seed)
 
-output_path = config.ARBITRARY_GAME_PATH
+output_path = config.RANDOM_GAME_PATH
 
 with open(output_path, "w", encoding="utf-8") as f:
     for _ in range(num_games):

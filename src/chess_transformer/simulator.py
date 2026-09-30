@@ -23,62 +23,27 @@ def _predict_next_token(x, legal_token_ids, model):
 
     return torch.multinomial(probabilities, 1).item()
 
-def _move_to_tokens(move):
-    uci = move.uci()
-    return uci[:2], uci[2:4], uci[4] if len(uci) == 5 else config.SKIP_TOKEN
-
 def construct_board_from_token_ids(token_ids, tokenizer):
     board = chess.Board()
-    moves = tokenizer.decode_game(token_ids[1:]) # Skipping <|BOS|>
+    moves = tokenizer.decode(token_ids[1:])
 
     for move in moves:
         board.push_uci(move)
 
     return board
 
-def get_legal_token_ids(board, x, tokenizer):
-    legal_moves = [_move_to_tokens(move) for move in board.legal_moves]
+def get_legal_token_ids(board, tokenizer):
+    legal_moves = [move.uci() for move in board.legal_moves]
 
-    # Subtracting 1 to account for <|BOS|> token
-    stage = (len(x) - 1) % 3
-
-    if stage == 0: # source
-        legal = {src for src, _, _ in legal_moves}
-
-    elif stage == 1: # target
-        src = tokenizer.id2token[x[-1]]
-        legal = {
-            trg
-            for move_src, trg, _ in legal_moves
-            if move_src == src
-        }
-
-    elif stage == 2: # promotion
-        src = tokenizer.id2token[x[-2]]
-        trg = tokenizer.id2token[x[-1]]
-        legal = {
-            promotion
-            for move_src, move_trg, promotion in legal_moves
-            if move_src == src and move_trg == trg
-        }
-
-    return {
-        tokenizer.token2id[token]
-        for token in legal
-    }
+    return tokenizer.encode(legal_moves)
 
 # x is a list of split move tokens
 def generate_move(board, x, model, tokenizer):
-    for _ in range(3):
-        legal_ids = get_legal_token_ids(board, x, tokenizer)
-        if len(legal_ids) == 0:
-            return None
-        x.append(_predict_next_token(x, legal_ids, model))
-
-    move_tokens = x[-3:]
-    del x[-3:]
-
-    return move_tokens
+    legal_ids = get_legal_token_ids(board, tokenizer)
+    if len(legal_ids) == 0:
+        return None
+    
+    return _predict_next_token(x, legal_ids, model)
 
 def make_engine_move(engine, tokenizer, token_id_sequence, board, seconds_per_engine_move):
     result = engine.play(
@@ -93,10 +58,10 @@ def make_engine_move(engine, tokenizer, token_id_sequence, board, seconds_per_en
 
 
 def make_model_move(model, tokenizer, token_id_sequence, board):
-    model_move_tokens = generate_move(board, token_id_sequence, model, tokenizer)
+    model_move_token = generate_move(board, token_id_sequence, model, tokenizer)
 
-    token_id_sequence += model_move_tokens
-    model_move_uci = tokenizer.decode_game(model_move_tokens)[0]
+    token_id_sequence.append(model_move_token)
+    model_move_uci = tokenizer.decode([model_move_token])[0]
     board.push_uci(model_move_uci)
 
 # Returns final board state and -1 if engine won, 0 if draw and 1 if model won

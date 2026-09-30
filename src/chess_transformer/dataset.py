@@ -13,14 +13,11 @@ import config
 
 class ChessDataset(Dataset):
     def __init__(self, uci_path, tokenizer, max_sequence_length):
-        assert max_sequence_length % 3 == 1, (
-            "max_sequence_length mod 3 must equal 1. "
-            "(<|BOS|> + complete 3-token moves)."
-        )
         self.tokenizer = tokenizer
         self.max_sequence_length = max_sequence_length
         self.vocab_size = len(tokenizer.token2id)
 
+<<<<<<< HEAD
         game_chunks = []
         game_lengths = []
 
@@ -47,16 +44,38 @@ class ChessDataset(Dataset):
         self.flat_tokens = np.concatenate(game_chunks)
         self.offsets = np.zeros(len(game_lengths) + 1, dtype=np.int64)
         np.cumsum(game_lengths, out=self.offsets[1:])
+=======
+        with open(uci_path, "r", encoding="utf-8") as f:
+            for line in f:
+                game_moves = json.loads(line)['moves_uci']
+                # Might be inefficient to extend list like this
+                encoded_game_moves = [config.BOS_TOKEN_ID] + self.tokenizer.encode(game_moves)
+                del encoded_game_moves[max_sequence_length:]
+                self.games.append(encoded_game_moves)
+>>>>>>> single-token-per-move
 
     def __len__(self):
         return len(self.offsets) - 1
 
+<<<<<<< HEAD
     def __getitem__(self, idx):
         game_tokens = self.flat_tokens[self.offsets[idx]:self.offsets[idx+1]]
         return (
             torch.tensor(game_tokens[:-1], dtype=torch.long), 
             torch.tensor(game_tokens[1:], dtype=torch.long)
         )
+=======
+    def __getitem__(self, id):
+        game = self.games[id]
+        inputs = game[:-1]
+        targets = game[1:]
+        # perhaps this would be better:
+        # del game[0]
+        # targets = game
+        # ?
+
+        return torch.tensor(inputs, dtype=torch.long), torch.tensor(targets, dtype=torch.long)
+>>>>>>> single-token-per-move
 
 def pad_collate_fn(batch):
     inputs, targets = zip(*batch)

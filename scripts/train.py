@@ -13,7 +13,6 @@ from src.chess_transformer.tokenizer import UCITokenizer
 from src.chess_transformer.transformer import Transformer
 import config
 
-
 def calculate_val_loss(model, criterion, val_loader, device):
     was_training = model.training
     model.eval()
@@ -50,7 +49,7 @@ def evaluate_and_log(global_step, epoch,
         experiment.logger.info("Estimating illegal probability mass...")
         illegal_probability_mass = estimate_teacher_forced_illegal_probability_mass(model,
                                                                                     tokenizer,
-                                                                                    config.ARBITRARY_GAME_PATH)
+                                                                                    config.RANDOM_GAME_PATH)
     experiment.save_checkpoint(model, optimizer, tokenizer,
                             epoch, global_step, val_loss_mean)
     experiment.logger.info(f"Saved checkpoint @ global step {global_step}, epoch {epoch}")
