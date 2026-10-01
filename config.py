@@ -6,7 +6,7 @@ LEARNING_RATE = 1e-3
 # Experiment tracking settings
 EXPERIMENT_TITLE = "single-token-per-move"
 
-TRAINING_EXAMPLES_PER_METRIC_LOG = 5e4
+TRAINING_EXAMPLES_PER_METRIC_LOG = 5e5
 GLOBAL_STEPS_PER_METRIC_LOG = max(TRAINING_EXAMPLES_PER_METRIC_LOG // BATCH_SIZE, 1)
 
 ESTIMATE_WINRATE = False # Winrate is a very expensive metric, arguably unecessary for now

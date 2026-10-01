@@ -11,4 +11,3 @@ Though to be fair, I'm now intrigued by how it would perform in comparison, give
 * I think there's much reason to believe that concentrating on board-state models, and perhaps RL fine-tuning, would lead to much more progres than creating a perfect experiment to prove an architecture is bad when I can already name a dozen strong weaknesses.
 
 I just realized and should note that it's unclear how much the "3x longer sequences" slows training/inference, and how efficiently those additional computations would be used (important if I were try to resolve confounds, perhaps?). Also, I think my use of "FLOP" may have been wrong. 
-
