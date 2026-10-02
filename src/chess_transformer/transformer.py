@@ -46,7 +46,6 @@ class Transformer(nn.Module):
             nn.LayerNorm(d_model)
             for _ in range(2*num_layers)
         ])
-        self.final_layer_norm = nn.LayerNorm(d_model)
 
     def forward(self, x):
         T = x.shape[-1]
