@@ -8,21 +8,25 @@ from .attention_layer import SelfAttentionLayer
 class Transformer(nn.Module):
     def __init__(self, num_layers, num_heads, vocab_size, d_model, max_sequence_length):
         super().__init__()
+        self.num_layers = num_layers
         self.vocab_size = vocab_size
         self.max_sequence_length = max_sequence_length
 
         # Weights
-        self.self_attention_layers = nn.ModuleList(
+        self.self_attention_sublayers = nn.ModuleList(
             [SelfAttentionLayer(num_heads, d_model, max_sequence_length) 
              for _ in range(num_layers)])
 
-        self.ffn = nn.Sequential(
-            nn.Linear(d_model, d_model*4),
-            nn.ReLU(),
-            nn.Linear(d_model*4, d_model)
-        )
+        self.ffn_sublayers = nn.ModuleList([
+            nn.Sequential(
+                nn.Linear(d_model, 2*d_model),
+                nn.ReLU(),
+                nn.Linear(2*d_model, d_model),
+            )
+            for _ in range(num_layers)
+        ])
 
-        self.linear = nn.Linear(d_model, vocab_size)
+        self.final_linear = nn.Linear(d_model, vocab_size)
 
         # Positional encodings & embeddings
         pe_dim = d_model // (2 * num_heads)
@@ -35,30 +39,28 @@ class Transformer(nn.Module):
         self.register_buffer("pe_sin", sin_encodings)
         self.register_buffer("pe_cos", cos_encodings)
 
-        self.Embedding = nn.Embedding(vocab_size, d_model)
+        self.embedding = nn.Embedding(vocab_size, d_model)
 
         # Normalization
-        self.LayerNorm1 = nn.LayerNorm(d_model)
-        self.LayerNorm2 = nn.LayerNorm(d_model)
+        self.layer_norms = nn.ModuleList([
+            nn.LayerNorm(d_model)
+            for _ in range(2*num_layers)
+        ])
+        self.final_layer_norm = nn.LayerNorm(d_model)
 
     def forward(self, x):
         T = x.shape[-1]
+        x = self.embedding(x)
 
-        x = self.Embedding(x)
-
-        for layer in self.self_attention_layers:
+        for idx in range(self.num_layers):
             residual_connection = x
-            x = layer(x, self.pe_sin[:T, ...], self.pe_cos[:T, ...])
-            x = self.LayerNorm1(x + residual_connection) # NOTE: Feels like each layer should have a separate layernorm.
+            x = self.self_attention_sublayers[idx](x, self.pe_sin[:T, ...], self.pe_cos[:T, ...])
+            x = self.layer_norms[2*idx](x + residual_connection)
+            residual_connection = x
+            x = self.ffn_sublayers[idx](x)
+            x = self.layer_norms[2*idx+1](x + residual_connection)
 
-        residual_connection = x
-
-        x = self.ffn(x)
-        x = self.LayerNorm2(x + residual_connection)
-
-        x = self.linear(x)
-
-        return x
+        return self.final_linear(x)
 
     def generate(self, x):
         if x.shape[-1] > self.max_sequence_length:

@@ -21,9 +21,8 @@ class SelfAttentionLayer(nn.Module):
         self.W_K = nn.Linear(d_model, self.d_KQ * num_heads)
         self.W_Q = nn.Linear(d_model, self.d_KQ * num_heads)
         self.W_V = nn.Linear(d_model, self.d_V * num_heads)
-        self.linear = nn.Linear(d_model, d_model)
 
-        self.ReLU = nn.ReLU()
+        self.ReLU = nn.ReLU() # NOTE: Unecessary?
         attention_mask = torch.ones(max_sequence_length, max_sequence_length).triu(diagonal=1)
         self.register_buffer("attention_mask", attention_mask)
 
@@ -60,4 +59,4 @@ class SelfAttentionLayer(nn.Module):
 
         concat_values = weighted_values.transpose(1, 2).reshape(B, T, self.d_model)
 
-        return self.linear(concat_values)
+        return concat_values
