@@ -1,10 +1,3 @@
-"""
-NOTE: This downloads (and caches) a 7.32 GB file (as of 2026-09-27)
-Ensure sufficient disk space. 
-
-Also, encoded datasets are cached, ensure stale versions aren't used
-after tokenizer or max_sequence_length changes.
-"""
 import torch
 import math
 from torch.utils.data import Dataset

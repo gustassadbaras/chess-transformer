@@ -1,6 +1,10 @@
-# NOTE: this feels like it should be way faster. 
-# This is quite complicated, I'm leaving it at this for now. 
+"""
+NOTE: This downloads (and caches) a 7.32 GB file (as of 2026-09-27)
+Ensure sufficient disk space. 
 
+Also, encoded datasets are cached, ensure stale versions aren't used
+after tokenizer or max_sequence_length changes.
+"""
 import sys
 import math
 import numpy as np
