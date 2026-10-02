@@ -35,6 +35,7 @@ def load_checkpoint(checkpoint_path, device):
         )
     model = Transformer(**checkpoint['model_params'])
     model.load_state_dict(checkpoint['model_state_dict'])
+    model = model.to(device)
 
     optimizer = torch.optim.Adam(
         model.parameters(),

@@ -37,7 +37,7 @@ class SelfAttentionLayer(nn.Module):
 
         return x
 
-    def forward(self, x, pe_cos, pe_sin):
+    def forward(self, x, pe_sin, pe_cos):
         B, T, _ = x.shape
 
         # Shapes should be (B, num_heads, T, d_KQ or d_V)
