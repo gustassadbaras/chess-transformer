@@ -3,20 +3,35 @@ import config
 
 class UCITokenizer:
     def __init__(self):
-        self.UNK_ID = config.UNK_TOKEN_ID
-        self.BOS_ID = config.BOS_TOKEN_ID
-        self.PAD_ID = config.PAD_TOKEN_ID
-
-        self.token2id = {
-            config.UNK_TOKEN : self.UNK_ID,
-            config.BOS_TOKEN : self.BOS_ID,
-            config.PAD_TOKEN : self.PAD_ID
+        self.input_token2id = {
+            # NOTE: could make the strings shorter
+            "<|EMPTY|>":                0,
+            "<|CLS|>" :                 1,
+            "<|W_TURN|>" :              2,
+            "<|B_TURN|>" :              3,
+            "<|W_PAWN|>" :              4,
+            "<|W_PAWN_EN_PASSANT|>" :   5,
+            "<|W_KNIGHT|>" :            6,
+            "<|W_BISHOP|>" :            7,
+            "<|W_ROOK|>" :              8,
+            "<|W_QUEEN|>" :             9,
+            "<|W_KING_MOVED|>" :        10,
+            "<|W_KING_UNMOVED|>" :      11,
+            "<|B_PAWN|>" :              12,
+            "<|B_PAWN_EN_PASSANT|>" :   13,
+            "<|B_KNIGHT|>" :            14,
+            "<|B_BISHOP|>" :            15,
+            "<|B_ROOK|>" :              16,
+            "<|B_QUEEN|>" :             17,
+            "<|B_KING_MOVED|>" :        18,
+            "<|B_KING_UNMOVED|>" :      19,
             }
 
-        self.token2id.update(generate_uci_move_vocab())
+        self.output_token2id = generate_uci_move_vocab()
 
-        self.id2token = {v : k for k,v in self.token2id.items()}
+        self.output_id2token = {v : k for k,v in self.output_token2id.items()}
         self.vocab_size = len(self.token2id)
+        # No input_id2token for now, unclear if that would be helpful yet. 
 
     def encode(self, uci_move_list):
         token_ids = []

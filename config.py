@@ -4,29 +4,20 @@ BATCH_SIZE = 32
 LEARNING_RATE = 1e-3
 
 # Experiment tracking settings
-EXPERIMENT_TITLE = "single-token-per-move"
+EXPERIMENT_TITLE = "board-state"
 
-TRAINING_EXAMPLES_PER_METRIC_LOG = 5e5
+TRAINING_EXAMPLES_PER_METRIC_LOG = 5e4
 GLOBAL_STEPS_PER_METRIC_LOG = max(TRAINING_EXAMPLES_PER_METRIC_LOG // BATCH_SIZE, 1)
 
-ESTIMATE_WINRATE = False # Winrate is a very expensive metric, arguably unecessary for now
-ESTIMATE_ILLEGAL_PROBABILITY_MASS = False # So far this hasn't proven itself as useful, turning off for now
+ESTIMATE_WINRATE = False
+ESTIMATE_ILLEGAL_PROBABILITY_MASS = False
 GAMES_PER_WINRATE_ESTIMATE = 10
 
 # Transformer settings
 NUM_LAYERS = 6
 NUM_HEADS = 6
 D_MODEL = 144 # Must be a multiple of NUM_HEADS
-MAX_SEQUENCE_LENGTH = 512
-
-# Tokenizer settings
-PAD_TOKEN_ID = 0
-BOS_TOKEN_ID = 1
-UNK_TOKEN_ID = 2
-
-PAD_TOKEN = "<|PAD|>"
-UNK_TOKEN = "<|UNK|>"
-BOS_TOKEN = "<|BOS|>"
+MAX_SEQUENCE_LENGTH = 66
 
 # Engine settings
 ENGINE_PATH = "stockfish"
