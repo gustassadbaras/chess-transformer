@@ -3,6 +3,7 @@ import chess.pgn
 import chess.engine
 import torch
 import random
+import numpy as np
 
 import config
 from .checkpoint import load_checkpoint
@@ -14,7 +15,7 @@ def _predict_next_token(x, legal_token_ids, model):
         device=next(model.parameters()).device,
     ).unsqueeze(0)
 
-    logits = model.generate(x_tensor)[0, -1]
+    logits = model.forward(x_tensor)[0]
 
     mask = torch.full_like(logits, float("-inf"))
     mask[list(legal_token_ids)] = 0
@@ -25,7 +26,7 @@ def _predict_next_token(x, legal_token_ids, model):
 
 def construct_board_from_token_ids(token_ids, tokenizer):
     board = chess.Board()
-    moves = tokenizer.decode(token_ids[1:])
+    moves = tokenizer.decode(token_ids)
 
     for move in moves:
         board.push_uci(move)
@@ -37,30 +38,61 @@ def get_legal_token_ids(board, tokenizer):
 
     return tokenizer.encode(legal_moves)
 
-# x is a list of split move tokens
-def generate_move(board, x, model, tokenizer):
+
+def encode_fen(fen):
+    FEN_PIECE = {c: i + 1 for i, c in enumerate("PNBRQK")}
+    FEN_PIECE |= {c: i + 7 for i, c in enumerate("pnbrqk")}
+    board_str, turn, castling, ep, *_ = fen.split()
+    tok = np.zeros(config.BOARD_SEQUENCE_LENGTH, dtype=np.uint8)
+
+    # Board: FEN lists rank 8 first, our index is rank*8 + file with a1 = 0.
+    for r, row in enumerate(board_str.split('/')):
+        rank = 7 - r
+        file = 0
+        for ch in row:
+            if ch.isdigit():
+                file += int(ch)
+            else:
+                tok[rank * 8 + file] = FEN_PIECE[ch]
+                file += 1
+
+    if ep != '-':
+        ep_sq = (ord(ep[0]) - 97) + 8 * (int(ep[1]) - 1)
+        if ep[1] == '3':          # white just pushed, pawn is one rank above
+            tok[ep_sq + 8] = 13
+        else:                     # '6': black just pushed, pawn is one rank below
+            tok[ep_sq - 8] = 14
+
+    tok[64] = 15 if turn == 'w' else 16
+
+    for k, c in enumerate("KQkq"):   # '-' simply matches nothing -> all "no right"
+        tok[65 + k] = 17 + 2 * k + (c in castling)
+
+    tok[-1] = config.CLS_ID
+    return tok
+
+def generate_move(board, model, tokenizer):
     legal_ids = get_legal_token_ids(board, tokenizer)
     if len(legal_ids) == 0:
         return None
+
+    x = encode_fen(board.fen())
     
     return _predict_next_token(x, legal_ids, model)
 
-def make_engine_move(engine, tokenizer, token_id_sequence, board, seconds_per_engine_move):
+def make_engine_move(engine, board, seconds_per_engine_move):
     result = engine.play(
         board,
         chess.engine.Limit(time=seconds_per_engine_move)
     )
     engine_move = result.move
-    engine_move_uci = engine_move.uci()
-    token_id_sequence += tokenizer.encode([engine_move_uci])
 
     board.push(engine_move)
 
 
-def make_model_move(model, tokenizer, token_id_sequence, board):
-    model_move_token = generate_move(board, token_id_sequence, model, tokenizer)
+def make_model_move(model, tokenizer, board):
+    model_move_token = generate_move(board, model, tokenizer)
 
-    token_id_sequence.append(model_move_token)
     model_move_uci = tokenizer.decode([model_move_token])[0]
     board.push_uci(model_move_uci)
 
@@ -74,19 +106,18 @@ def simulate_game(model, tokenizer, engine_path, elo, seconds_per_engine_move):
             "UCI_Elo": elo,
         })
         board = chess.Board()
-        token_id_sequence = [config.BOS_TOKEN_ID]
 
         model_plays_first = random.randint(0, 1) == 0
         if model_plays_first:
-            make_model_move(model, tokenizer, token_id_sequence, board)
+            make_model_move(model, tokenizer, board)
             
         while not board.is_game_over():
-            make_engine_move(engine, tokenizer, token_id_sequence, board, seconds_per_engine_move)
+            make_engine_move(engine, board, seconds_per_engine_move)
 
             if board.is_game_over():
                 break
 
-            make_model_move(model, tokenizer, token_id_sequence, board)
+            make_model_move(model, tokenizer, board)
     finally:
         engine.quit()
 

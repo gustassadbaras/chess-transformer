@@ -2,7 +2,7 @@ import random
 import torch
 import json
 
-from .simulator import simulate_game, get_legal_token_ids, construct_board_from_token_ids
+from .simulator import simulate_game, get_legal_token_ids, construct_board_from_token_ids, encode_fen
 import config
 
 def estimate_winrate(model, tokenizer, engine_path, engine_elo, seconds_per_engine_move):
@@ -41,7 +41,7 @@ def estimate_teacher_forced_illegal_probability_mass(model,
         for game_id in range(num_games):
             moves_uci = games[game_id]
 
-            x = [tokenizer.BOS_ID] + tokenizer.encode(moves_uci[:-1]) # slicing to avoid game-over board positions
+            x = tokenizer.encode(moves_uci[:-1]) # slicing to avoid game-over board positions
 
             x = torch.tensor(
                 x, 
@@ -56,7 +56,8 @@ def estimate_teacher_forced_illegal_probability_mass(model,
 
             legal_token_ids = get_legal_token_ids(board, tokenizer)
 
-            logits = model.forward(x.unsqueeze(0))[0, -1]
+            tok = torch.tensor(encode_fen(board.fen()), dtype=torch.long).unsqueeze(0)
+            logits = model.forward(tok)[0]
             probabilities = torch.softmax(logits, dim=-1)
 
             illegal_mask = torch.ones_like(

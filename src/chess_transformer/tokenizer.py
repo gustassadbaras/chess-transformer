@@ -4,61 +4,53 @@ import config
 class UCITokenizer:
     def __init__(self):
         self.input_token2id = {
-            # NOTE: could make the strings shorter
-            "<|EMPTY|>":                0,
-            "<|CLS|>" :                 1,
-            "<|W_TURN|>" :              2,
-            "<|B_TURN|>" :              3,
-            "<|W_PAWN|>" :              4,
-            "<|W_PAWN_EN_PASSANT|>" :   5,
-            "<|W_KNIGHT|>" :            6,
-            "<|W_BISHOP|>" :            7,
-            "<|W_ROOK|>" :              8,
-            "<|W_QUEEN|>" :             9,
-            "<|W_KING_MOVED|>" :        10,
-            "<|W_KING_UNMOVED|>" :      11,
-            "<|B_PAWN|>" :              12,
-            "<|B_PAWN_EN_PASSANT|>" :   13,
-            "<|B_KNIGHT|>" :            14,
-            "<|B_BISHOP|>" :            15,
-            "<|B_ROOK|>" :              16,
-            "<|B_QUEEN|>" :             17,
-            "<|B_KING_MOVED|>" :        18,
-            "<|B_KING_UNMOVED|>" :      19,
-            }
+            ' ' : 0,
+            'P': 1,
+            'N': 2,
+            'B': 3,
+            'R': 4,
+            'Q': 5,
+            'K': 6,
+
+            'p': 7,
+            'n': 8,
+            'b': 9,
+            'r': 10,
+            'q': 11,
+            'k': 12,
+
+            'EP': 13, # white pawn which just pushed 2 squares
+            'Ep': 14, # black pawn which just pushed 2 squares
+            'wtm': 15, # white to move
+            'btm': 16, # black to move
+            'w_kingside_castle_false' : 17,
+            'w_kingside_castle_true' : 18,
+            'w_queenside_castle_false' : 19,
+            'w_queenside_castle_true' : 20,
+            'b_kingside_castle_false' : 21,
+            'b_kingside_castle_true' : 22,
+            'b_queenside_castle_false' : 23,
+            'b_queenside_castle_true' : 24,
+            'CLS' : 25
+        }
+        self.input_vocab_size = len(self.input_token2id)
 
         self.output_token2id = generate_uci_move_vocab()
 
         self.output_id2token = {v : k for k,v in self.output_token2id.items()}
-        self.vocab_size = len(self.token2id)
-        # No input_id2token for now, unclear if that would be helpful yet. 
+        self.output_vocab_size = len(self.output_token2id)
 
+    # NOTE: this function is misleading. "uci_move_list" as a parm, but this doesn't operate on lists of strings. 
     def encode(self, uci_move_list):
         token_ids = []
         for uci_move in uci_move_list:
-            token_ids.append(self.token2id[uci_move])
+            token_ids.append(self.output_token2id[uci_move])
 
         return token_ids
 
     def decode(self, id_list):
-        return [self.id2token[id] for id in id_list]
+        return [self.output_id2token[id] for id in id_list]
 
-    def decode_game(self, id_list):
-        uci_move_list = []
-
-        for token_id in id_list:
-            if token_id == config.BOS_TOKEN_ID:
-                continue
-
-            if token_id in {
-                config.PAD_TOKEN_ID,
-                config.UNK_TOKEN_ID,
-            }:
-                break
-
-            uci_move_list.append(self.id2token[token_id])
-
-        return uci_move_list
 
 def generate_uci_move_vocab():
     files = "abcdefgh"
@@ -115,7 +107,7 @@ if __name__ == "__main__":
     print("Tokenizer test")
     tokenizer = UCITokenizer()
 
-    moves = ['<|BOS|>', 'f4f1', 'g8h6', 'f7f8q']
+    moves = ['f4f1', 'g8h6', 'f7f8q']
 
     print(f"Original moves:")
     print(moves)

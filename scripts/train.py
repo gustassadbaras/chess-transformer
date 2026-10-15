@@ -13,7 +13,6 @@ from src.chess_transformer.checkpoint import load_checkpoint
 from src.chess_transformer.experiment_tracker import Experiment
 from src.chess_transformer.validation_metrics import estimate_winrate, estimate_teacher_forced_illegal_probability_mass
 from src.chess_transformer.dataset import ChessDataset
-from src.chess_transformer.dataset import pad_collate_fn
 from src.chess_transformer.tokenizer import UCITokenizer
 from src.chess_transformer.transformer import Transformer
 import config
@@ -82,7 +81,7 @@ def calculate_val_loss(model, criterion, val_loader, device):
             targets = targets.to(device)
 
             predictions = model(inputs)
-            loss = criterion(predictions.transpose(1, 2), targets)
+            loss = criterion(predictions, targets)
 
             val_loss += loss.item()
 
@@ -162,7 +161,8 @@ def train(checkpoint_path=None):
         tokenizer = UCITokenizer()
         model = Transformer(config.NUM_LAYERS, 
                             config.NUM_HEADS, 
-                            tokenizer.vocab_size,
+                            tokenizer.input_vocab_size,
+                            tokenizer.output_vocab_size,
                             config.D_MODEL,
                             config.MAX_SEQUENCE_LENGTH).to(device)
 
@@ -186,7 +186,7 @@ def train(checkpoint_path=None):
             output_device=local_rank,
         )
 
-    criterion = nn.CrossEntropyLoss(ignore_index=config.PAD_TOKEN_ID)
+    criterion = nn.CrossEntropyLoss()
 
     train_set = ChessDataset(config.UCI_TRAIN_DATA_PATH, tokenizer, config.MAX_SEQUENCE_LENGTH)
 
@@ -204,7 +204,6 @@ def train(checkpoint_path=None):
         batch_size=config.BATCH_SIZE,
         shuffle=(train_sampler is None), 
         sampler=train_sampler,
-        collate_fn=pad_collate_fn,
         num_workers=2,
         pin_memory=device.type == "cuda"
     )
@@ -215,7 +214,6 @@ def train(checkpoint_path=None):
             val_set,
             batch_size=config.BATCH_SIZE,
             shuffle=False,
-            collate_fn=pad_collate_fn,
             num_workers=2,
             pin_memory=device.type == "cuda"
         )
@@ -238,7 +236,7 @@ def train(checkpoint_path=None):
 
             optimizer.zero_grad()
             predictions = model(inputs)
-            loss = criterion(predictions.transpose(1, 2), 
+            loss = criterion(predictions, 
                              targets)
 
             loss.backward()

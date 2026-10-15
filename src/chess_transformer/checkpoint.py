@@ -18,7 +18,8 @@ def save_checkpoint(model,
                 "model_params": {
                     "num_layers" : config.NUM_LAYERS,
                     "num_heads" : config.NUM_HEADS,
-                    "vocab_size" : model.vocab_size,
+                    "input_vocab_size" : model.input_vocab_size,
+                    "output_vocab_size" : model.output_vocab_size,
                     "d_model" : config.D_MODEL,
                     "max_sequence_length" : config.MAX_SEQUENCE_LENGTH
                     },
