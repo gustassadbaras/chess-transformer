@@ -11,7 +11,8 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 from datasets import load_dataset
-import config
+
+from src.chess_transformer.paths import get_path
 
 if len(sys.argv) != 4:
     print("Usage: download_data_uci.py <number_of_games> <train_fraction> <val_fraction>")
@@ -41,9 +42,8 @@ perm = rng.permutation(total)
 train_count = int(train_fraction * N)
 val_count = N - train_count
 splits = {
-    config.UCI_TRAIN_DATA_PATH:   perm[:train_count],
-    config.UCI_VAL_DATA_PATH:     perm[train_count:train_count + val_count],
-    config.UCI_HOLDOUT_DATA_PATH: perm[train_count + val_count:],
+    get_path("train", "processed"):   perm[:train_count],
+    get_path("val", "processed"):     perm[train_count:train_count + val_count],
 }
 
 def gather(idx):

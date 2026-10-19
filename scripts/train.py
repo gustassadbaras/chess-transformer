@@ -12,7 +12,8 @@ import os
 from src.chess_transformer.checkpoint import load_checkpoint
 from src.chess_transformer.experiment_tracker import Experiment
 from src.chess_transformer.validation_metrics import estimate_winrate, estimate_teacher_forced_illegal_probability_mass
-from src.chess_transformer.dataset import ChessDataset
+# from src.chess_transformer.dataset import ChessDataset
+from src.chess_transformer.stockfish_dataset import StockfishDataset
 from src.chess_transformer.tokenizer import UCITokenizer
 from src.chess_transformer.transformer import Transformer
 import config
@@ -188,7 +189,7 @@ def train(checkpoint_path=None):
 
     criterion = nn.CrossEntropyLoss()
 
-    train_set = ChessDataset(config.UCI_TRAIN_DATA_PATH, tokenizer, config.MAX_SEQUENCE_LENGTH)
+    train_set = StockfishDataset("train", tokenizer)
 
     if distributed:
         train_sampler = DistributedSampler(
@@ -209,7 +210,7 @@ def train(checkpoint_path=None):
     )
 
     if is_main_process:
-        val_set = ChessDataset(config.UCI_VAL_DATA_PATH, tokenizer, config.MAX_SEQUENCE_LENGTH)
+        val_set = StockfishDataset("val", tokenizer)
         val_loader = DataLoader(
             val_set,
             batch_size=config.BATCH_SIZE,

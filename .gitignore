@@ -1,18 +1,14 @@
-
-!data/
-!models/
-!experiments/
-
-data/*
-models/*
-experiments/*
+data/**
+models/**
+experiments/**
 scripts/test.py
-# A real pain to maintain as a tracked file
 notes.md
 
-!data/overfit_test_set.parquet
-!experiments/.gitkeep
-!models/.gitkeep
+!*/
+
+!.gitkeep
+
+!data/processed/overfit_test_set.parquet
 
 ## Defaults
 # Byte-compiled / optimized / DLL files

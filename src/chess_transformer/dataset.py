@@ -7,6 +7,7 @@ import numpy as np
 import math
 import os
 
+from src.chess_transformer.paths import get_path
 import config
 
 
@@ -130,32 +131,30 @@ def encode_board(board, ds):
     return tok[0]
 
 class ChessDataset(Dataset):
-    def __init__(self, uci_path, tokenizer, max_sequence_length):
+    def __init__(self, dataset_type, tokenizer):
         self.tokenizer = tokenizer
-        self.max_sequence_length = max_sequence_length
         self.vocab_size = len(tokenizer.output_token2id)
 
-        dataset_name = uci_path.split('/')[-1].split('.')[0]
-        flat_save_path = f"data/cached_flat_{dataset_name}.npy"
-        offset_save_path = f"data/cached_offset_{dataset_name}.npy"
+        processed_path = get_path(dataset_type, "processed")
+        flat_save_path = get_path(dataset_type, "cached", cache_type="flat")
+        offset_save_path = get_path(dataset_type, "cached", cache_type="offset")
         if os.path.exists(flat_save_path) and os.path.exists(offset_save_path):
-            print(f"Loading cached dataset {dataset_name} ({uci_path})")
+            print(f"Loading cached dataset ({dataset_type})")
             self.flat_tokens = np.load(flat_save_path)
             self.offsets = np.load(offset_save_path)
         else:
-            print(f"Loading dataset {dataset_name} for the first time ({uci_path})")
+            print(f"Loading {dataset_type} dataset for the first time")
             game_chunks = []
             game_lengths = []
 
-            parquet_file = pq.ParquetFile(uci_path)
-            metadata = pq.read_metadata(uci_path)
+            parquet_file = pq.ParquetFile(processed_path)
+            metadata = pq.read_metadata(processed_path)
             num_games = metadata.num_rows
             total_batches = math.ceil(num_games / 10000)
             for batch_idx, batch in enumerate(
                 parquet_file.iter_batches(columns=["moves_uci"], batch_size=10000)):
                 for game_moves in batch.column("moves_uci").to_pylist():
-                    del game_moves[max_sequence_length:]
-                    game_tokens = tokenizer.encode(game_moves)[:max_sequence_length]
+                    game_tokens = tokenizer.encode(game_moves)
                     game_chunks.append(np.asarray(game_tokens, dtype=np.int32))
                     game_lengths.append(len(game_tokens))
                 print(
@@ -205,12 +204,10 @@ if __name__ == "__main__":
 
     tokenizer = UCITokenizer()
 
-    ds = ChessDataset("data/val_set.parquet",
-                      tokenizer,
-                      256)
+    ds = ChessDataset("val",
+                      tokenizer)
     
-    for g in range(10000):
-    # for g in range(len(ds.offsets)-1):
+    for g in range(len(ds.offsets)-1):
         moves = ds.flat_tokens[ds.offsets[g]: ds.offsets[g + 1]]
         uci = [ds.tokenizer.output_id2token[m] for m in moves]
         board = chess.Board()

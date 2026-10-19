@@ -6,7 +6,7 @@ LEARNING_RATE = 1e-3
 # Experiment tracking settings
 EXPERIMENT_TITLE = "board-state"
 
-TRAINING_EXAMPLES_PER_METRIC_LOG = 5e1
+TRAINING_EXAMPLES_PER_METRIC_LOG = 5e4
 GLOBAL_STEPS_PER_METRIC_LOG = max(TRAINING_EXAMPLES_PER_METRIC_LOG // BATCH_SIZE, 1)
 
 ESTIMATE_WINRATE = False
@@ -26,10 +26,11 @@ SECONDS_PER_ENGINE_MOVE = 0.1
 ENGINE_ELO = 1350
 
 # Paths
-UCI_TRAIN_DATA_PATH = "data/overfit_test_set.parquet"
-UCI_VAL_DATA_PATH = "data/overfit_test_set.parquet"
-UCI_HOLDOUT_DATA_PATH = "data/holdout_set.parquet"
-RANDOM_GAME_PATH = "data/random_games.jsonl"
+TRAIN_DATA_NAME = "train_set"
+VAL_DATA_NAME = "val_set"
+DATA_DIR = "data"
+
+RANDOM_GAME_PATH = "data/processed/random_games.jsonl"
 
 # Token IDs
 CLS_ID = 25
