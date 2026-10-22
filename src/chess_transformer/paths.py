@@ -13,7 +13,8 @@ STAGE_EXTENSIONS = {
 }
 
 # cache_type: flat/offset
-def get_path(dataset: str, stage: str, cache_type=None, temporary=False):
+# This function is more annoying than helpful, data file handling needs a rewrite
+def get_path(dataset: str, stage: str, cache_type=None, temporary=False, postfix=None):
     try:
         directory = f"{DATA_DIR}/{stage}/"
         name = DATASET_NAMES[dataset]
@@ -26,7 +27,6 @@ def get_path(dataset: str, stage: str, cache_type=None, temporary=False):
     if cache_type is not None and stage != "cached":
         raise ValueError("cache_type can only be specified for the cache stage")
 
-    if cache_type:
-        return f"{directory}{temp_str}{name}_{cache_type}{extension}"
+    cache_type = "" if not cache_type else f"_{cache_type}"
 
-    return f"{directory}{name}{extension}"
+    return f"{directory}{name}{cache_type}{postfix if postfix else ''}{extension}"
