@@ -164,8 +164,7 @@ def train(checkpoint_path=None):
                             config.NUM_HEADS, 
                             tokenizer.input_vocab_size,
                             tokenizer.output_vocab_size,
-                            config.D_MODEL,
-                            config.MAX_SEQUENCE_LENGTH).to(device)
+                            config.D_MODEL).to(device)
 
         optimizer = optim.Adam(model.parameters(), 
                             config.LEARNING_RATE) # More configuration would be nice

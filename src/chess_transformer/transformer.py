@@ -6,16 +6,15 @@ from .attention_layer import SelfAttentionLayer
 import config
 
 class Transformer(nn.Module):
-    def __init__(self, num_layers, num_heads, input_vocab_size, output_vocab_size, d_model, max_sequence_length):
+    def __init__(self, num_layers, num_heads, input_vocab_size, output_vocab_size, d_model):
         super().__init__()
         self.num_layers = num_layers
         self.input_vocab_size = input_vocab_size
         self.output_vocab_size = output_vocab_size
-        self.max_sequence_length = max_sequence_length
 
         # Weights
         self.self_attention_sublayers = nn.ModuleList(
-            [SelfAttentionLayer(num_heads, d_model, max_sequence_length) 
+            [SelfAttentionLayer(num_heads, d_model) 
              for _ in range(num_layers)])
 
         self.ffn_sublayers = nn.ModuleList([

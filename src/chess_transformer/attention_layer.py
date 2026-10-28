@@ -1,10 +1,11 @@
 import torch.nn as nn
 import torch
-
 import math
 
+import config
+
 class SelfAttentionLayer(nn.Module):
-    def __init__(self, num_heads, d_model, max_sequence_length):
+    def __init__(self, num_heads, d_model):
         super().__init__()
         if d_model % num_heads != 0:
             raise ValueError(
@@ -23,7 +24,7 @@ class SelfAttentionLayer(nn.Module):
         self.W_V = nn.Linear(d_model, self.d_V * num_heads)
 
         self.ReLU = nn.ReLU() # NOTE: Unecessary?
-        attention_mask = torch.ones(max_sequence_length, max_sequence_length).triu(diagonal=1)
+        attention_mask = torch.ones(config.BOARD_SEQUENCE_LENGTH, config.BOARD_SEQUENCE_LENGTH).triu(diagonal=1)
         self.register_buffer("attention_mask", attention_mask)
 
     def forward(self, x):
@@ -35,12 +36,8 @@ class SelfAttentionLayer(nn.Module):
         V = self.W_V(x).view(B, T, self.num_heads, self.d_V).transpose(1, 2)
 
         scaled_attention_scores = torch.matmul(Q, K.transpose(-1,-2)) / self.sqrt_d_KQ
-        masked_scaled_attention_scores = scaled_attention_scores.masked_fill(
-            self.attention_mask[:T,:T] == 1,
-            float("-inf")
-        )
 
-        attention_weights = torch.softmax(masked_scaled_attention_scores, dim=-1)
+        attention_weights = torch.softmax(scaled_attention_scores, dim=-1)
         weighted_values = torch.matmul(attention_weights, V)
 
         concat_values = weighted_values.transpose(1, 2).reshape(B, T, self.d_model)

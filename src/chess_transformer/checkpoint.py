@@ -20,8 +20,7 @@ def save_checkpoint(model,
                     "num_heads" : config.NUM_HEADS,
                     "input_vocab_size" : model.input_vocab_size,
                     "output_vocab_size" : model.output_vocab_size,
-                    "d_model" : config.D_MODEL,
-                    "max_sequence_length" : config.MAX_SEQUENCE_LENGTH
+                    "d_model" : config.D_MODEL
                     },
                 "tokenizer" : tokenizer,
                 },
