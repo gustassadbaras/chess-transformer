@@ -26,8 +26,8 @@ SECONDS_PER_ENGINE_MOVE = 0.1
 ENGINE_ELO = 1350
 
 # Paths
-TRAIN_DATA_NAME = "train_set"
-VAL_DATA_NAME = "val_set"
+TRAIN_DATA_NAME = "combined_train"
+VAL_DATA_NAME = "combined_val"
 DATA_DIR = "data"
 
 RANDOM_GAME_PATH = "data/processed/random_games.jsonl"

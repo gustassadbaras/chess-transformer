@@ -1,9 +1,7 @@
 from pathlib import Path
+import argparse
 import pyarrow as pa
 import pyarrow.parquet as pq
-
-INPUT_DIR = Path(r"data/relabeled/parts/train")
-OUTPUT_FILE = Path(r"data/relabeled/combined.parquet")
 
 def combine_parquet_files(input_dir: Path, output_file: Path) -> None:
     files = sorted(input_dir.glob("part_*"))
@@ -47,4 +45,9 @@ def combine_parquet_files(input_dir: Path, output_file: Path) -> None:
 
 
 if __name__ == "__main__":
-    combine_parquet_files(INPUT_DIR, OUTPUT_FILE)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_dir", type=Path)
+    parser.add_argument("output_file", type=Path)
+    args = parser.parse_args()
+
+    combine_parquet_files(args.input_dir, args.output_file)
