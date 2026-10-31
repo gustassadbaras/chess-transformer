@@ -1,10 +1,14 @@
+"""
+Turns 'raw' dataset (output of download_data_uci.py) into a stockfish-relabelled dataset inside data/datasets
+Relabelling is done in partitions, so the process can be stopped and resumed seamlessly. 
+The .parquet partitions can be easily combined into a single table. 
+"""
 import argparse
 import math
 import os
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path
-
 import chess
 import chess.engine
 import numpy as np
@@ -13,18 +17,52 @@ import pyarrow.parquet as pq
 from tqdm import tqdm
 
 import config
-from src.chess_transformer.paths import get_path
+from src.chess_transformer.dataset_manager import DatasetDirectory
 from src.chess_transformer.tokenizer import UCITokenizer
 
-NODE_COUNT = 10_000
-NUM_WORKERS = min(16, os.cpu_count() or 1)
-GAMES_PER_PART = 100
-SEED = 42
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Batched dataset relabeling using stockfish (and deduplication)"
+    )
+    parser.add_argument(
+        "raw_dataset_path",
+        type=Path,
+        help="Path of the .parquet file with a 'moves_uci' column containing lists of chess moves starting from the initial board position. "
+    )
 
-RELABELED_DIR = Path("data/relabeled")
+    parser.add_argument(
+        "--dataset-name",
+        type=Path,
+        default=Path("default-dataset")
+    )
+
+    parser.add_argument(
+        "--deduplication-game-order-path",
+        type=Path,
+        default=None,
+        help="Optional .npy file containing game permutation order"
+    )
+
+    parser.add_argument("--num-games", type=int, default=5_000)
+    parser.add_argument("--node-count", type=int, default=10_000)
+    parser.add_argument("--games-per-part", type=int, default=100)
+    parser.add_argument("--seed", type=int, default=42)
+
+    return parser.parse_args()
+
+args = parse_args()
+
+RAW_DATASET_PATH = args.raw_dataset_path
+DEDUPLICATION_GAME_ORDER_PATH = args.deduplication_game_order_path
+NODE_COUNT = args.node_count
+GAMES_PER_PART = args.games_per_part
+SEED = args.seed
+DATASET_NAME = args.dataset_name
+NUM_GAMES = args.num_games
+
+NUM_WORKERS = min(16, os.cpu_count() or 1)
 
 tokenizer = UCITokenizer()
-
 
 def atomic_save_npy(path, arr):
     path = Path(path)
@@ -79,7 +117,6 @@ def work(part_id, flat_path, offsets_path, parts_dir, permutation_path):
     pq.write_table(table, tmp)
     os.replace(tmp, final)
 
-
 def build_cache(processed_path, flat_path, offsets_path, num_games):
     pf = pq.ParquetFile(processed_path)
     if pf.metadata.num_rows < num_games:
@@ -108,39 +145,48 @@ def build_cache(processed_path, flat_path, offsets_path, num_games):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("dataset_type")
-    ap.add_argument("--num-games", type=int, default=1_000_000)
-    args = ap.parse_args()
-    dataset_type, num_games = args.dataset_type, args.num_games
-    permutation_path = RELABELED_DIR / f"game_permutation_order_{dataset_type}.npy"
+    dataset_directory = DatasetDirectory(DATASET_NAME)
 
-    flat_path = get_path(dataset_type, "cached", cache_type="flat", postfix="_stockfish")
-    offsets_path = get_path(dataset_type, "cached", cache_type="offset", postfix="_stockfish")
-    processed_path = get_path(dataset_type, "processed")
+    permutation_path = dataset_directory.cache_path("game_permutation_order.npy") # 'game permutation order' sounds.. odd
+    flat_path = dataset_directory.cache_path("flat_relabel.npy")
+    offsets_path = dataset_directory.cache_path("relabelling_offsets.npy")
 
     # Parts are per dataset_type so one split's results are never mistaken for another's.
-    parts_dir = RELABELED_DIR / "parts" / dataset_type
-    parts_dir.mkdir(parents=True, exist_ok=True)
+    parts_dir = dataset_directory.partitions_path()
 
     if not permutation_path.is_file():
-        print("Couldn't find permutation file, building one")
-        perm = np.random.default_rng(SEED).permutation(num_games)
+        if not DEDUPLICATION_GAME_ORDER_PATH:
+            print("Couldn't find permutation file, building one")
+            indices_to_omit = np.array([], dtype=int)
+        else:
+            print(
+                f"Couldn't find permutation file, building one while "
+                f"omitting games from '{DEDUPLICATION_GAME_ORDER_PATH}' game indices"
+            )
+            indices_to_omit = np.load(DEDUPLICATION_GAME_ORDER_PATH, mmap_mode="r")
+
+        available_indices = np.setdiff1d(
+            np.arange(NUM_GAMES),
+            indices_to_omit
+        )
+        perm = np.random.default_rng(SEED).permutation(available_indices)
+
         atomic_save_npy(permutation_path, perm)
     order = np.load(permutation_path, mmap_mode="r")
-    if len(order) != num_games:
-        raise ValueError(f"Permutation has {len(order)} entries, expected {num_games}")
+    if len(order) != NUM_GAMES:
+        raise ValueError(f"Permutation has {len(order)} entries, expected {NUM_GAMES}")
 
     if not (Path(flat_path).is_file() and Path(offsets_path).is_file()):
-        if len(np.load(offsets_path, mmap_mode="r")) - 1 < num_games:
-            raise ValueError(
-                f"Cached arrays hold fewer than {num_games} games; "
-                f"delete {flat_path} and {offsets_path} to rebuild."
-            )
-        print(f"Turning {dataset_type} dataset into flat & offset arrays")
-        build_cache(processed_path, flat_path, offsets_path)
+        print(f"Turning dataset into flat & offset arrays")
+        build_cache(RAW_DATASET_PATH, flat_path, offsets_path, NUM_GAMES)
 
-    num_parts = math.ceil(num_games / GAMES_PER_PART)
+    if len(np.load(offsets_path, mmap_mode="r")) - 1 < NUM_GAMES:
+        raise ValueError(
+            f"Cached arrays hold fewer than {NUM_GAMES} games; "
+            f"delete {flat_path} and {offsets_path} to rebuild."
+        )
+
+    num_parts = math.ceil(NUM_GAMES / GAMES_PER_PART)
 
     for stale in parts_dir.glob("*.tmp"):
         stale.unlink()

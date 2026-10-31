@@ -81,10 +81,10 @@ def generate_move(board, model, tokenizer):
     
     return _predict_next_token(x, legal_ids, model)
 
-def make_engine_move(engine, board, seconds_per_engine_move):
+def make_engine_move(engine, board, engine_node_count):
     result = engine.play(
         board,
-        chess.engine.Limit(time=seconds_per_engine_move)
+        chess.engine.Limit(nodes=engine_node_count)
     )
     engine_move = result.move
 

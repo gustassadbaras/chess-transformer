@@ -1,3 +1,6 @@
+"""
+Used to turn PGN opening books into parquet files with a "fen" column
+"""
 import chess
 import chess.pgn
 import pandas as pd

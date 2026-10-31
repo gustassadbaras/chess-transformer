@@ -1,3 +1,8 @@
+"""
+Creates a new dataset containing model's games against stockfish, labelled by expert (stockfish), used for DAgger fine-tuning. 
+NOTE: currently sampling opponent nodes unifiromly form [min_elo, max_elo], leads to strong-skewed opponent distirbution
+fix with sampling in [log(min), log(max)]?
+"""
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
@@ -9,6 +14,7 @@ from tqdm import tqdm
 import argparse
 from pathlib import Path
 
+from src.chess_transformer.dataset_manager import DatasetDirectory
 from src.chess_transformer.checkpoint import load_checkpoint
 from src.chess_transformer.simulator import make_engine_move, make_model_move
 import config
@@ -17,51 +23,45 @@ def parse_args():
     parser = argparse.ArgumentParser(description="DAgger data generation")
 
     parser.add_argument(
-        "--checkpoint-path",
+        "checkpoint_path",
         type=Path,
-        default=Path("models/model.pth")
     )
     parser.add_argument(
-        "--dagger-dir",
+        "dataset_name",
         type=Path,
-        default=Path("data/dagger")
-    )
-    parser.add_argument(
-        "--output-path",
-        type=Path,
-        default=None,
-        help="Output parquet path (automatically generated if omitted)"
     )
 
     parser.add_argument("--num-games", type=int, default=5000)
     parser.add_argument("--num-workers", type=int, default=8)
-    parser.add_argument("--min-engine-elo", type=int, default=1400)
-    parser.add_argument("--max-engine-elo", type=int, default=2600)
-    parser.add_argument("--node-count", type=int, default=10000)
-    parser.add_argument("--s-per-engine-move", type=float, default=0.05)
+    parser.add_argument("--labeller-node-count", type=int, default=10000)
+    parser.add_argument("--opponent-min-node-count", type=int, default=8000)
+    parser.add_argument("--opponent-max-node-count", type=int, default=15000)
 
     return parser.parse_args()
 
 args = parse_args()
 
 CHECKPOINT_PATH = args.checkpoint_path
-DAGGER_DIR = args.dagger_dir
-
-num_files = sum(1 for f in DAGGER_DIR.iterdir() if f.is_file())
-
-OUTPUT_PATH = args.output_path or DAGGER_DIR / f"dagger_{num_files}.parquet"
-
 NUM_GAMES = args.num_games
 NUM_WORKERS = args.num_workers
-MIN_ENGINE_ELO = args.min_engine_elo
-MAX_ENGINE_ELO = args.max_engine_elo
-NODE_COUNT = args.node_count
-S_PER_ENGINE_MOVE = args.s_per_engine_move
+LABELLER_NODE_COUNT = args.labeller_node_count
+OPPONENT_MIN_NODE_COUNT = args.opponent_min_node_count
+OPPONENT_MAX_NODE_COUNT = args.opponent_min_node_count
+
+DATASET_NAME = args.dataset_name
+dataset_directory = DatasetDirectory(DATASET_NAME)
+OUTPUT_PATH = dataset_directory.data_path()
+
+dataset_directory.update_metadata(opponent_min_node_count=OPPONENT_MIN_NODE_COUNT,
+                                  opponent_max_node_count=OPPONENT_MAX_NODE_COUNT,
+                                  labeller_node_count=LABELLER_NODE_COUNT,
+                                  min_opponent_node_count=OPPONENT_MIN_NODE_COUNT,
+                                  max_opponent_node_count=OPPONENT_MAX_NODE_COUNT)
 
 model_lock = threading.Lock()
 
-
-def play_dagger_game(model, tokenizer, engine_path, elo, seconds_per_engine_move):
+# NOTE: could perhaps add support for labeller and opponent using different engines
+def play_dagger_game(model, tokenizer, engine_path, engine_node_count):
     opponent = chess.engine.SimpleEngine.popen_uci(engine_path)
     labeler = chess.engine.SimpleEngine.popen_uci(engine_path)
 
@@ -69,8 +69,6 @@ def play_dagger_game(model, tokenizer, engine_path, elo, seconds_per_engine_move
 
     try:
         opponent.configure({
-            "UCI_LimitStrength": True,
-            "UCI_Elo": elo,
             "Threads": 1,
         })
         labeler.configure({"Threads": 1})
@@ -85,12 +83,12 @@ def play_dagger_game(model, tokenizer, engine_path, elo, seconds_per_engine_move
             model_move()
 
         while not board.is_game_over():
-            make_engine_move(opponent, board, seconds_per_engine_move)
+            make_engine_move(opponent, board, engine_node_count)
 
             if board.is_game_over():
                 break
 
-            best = labeler.play(board, chess.engine.Limit(nodes=NODE_COUNT)).move
+            best = labeler.play(board, chess.engine.Limit(nodes=LABELLER_NODE_COUNT)).move
             rows.append((board.fen(en_passant="fen"), best.uci()))
 
             model_move()
@@ -102,10 +100,9 @@ def play_dagger_game(model, tokenizer, engine_path, elo, seconds_per_engine_move
 
 
 def worker(model, tokenizer):
-    elo = random.randint(MIN_ENGINE_ELO, MAX_ENGINE_ELO)
-    return play_dagger_game(model, tokenizer, config.ENGINE_PATH, elo,
-                            S_PER_ENGINE_MOVE)
-
+    opponent_node_count = random.randint(OPPONENT_MIN_NODE_COUNT,
+                                         OPPONENT_MAX_NODE_COUNT)
+    return play_dagger_game(model, tokenizer, config.ENGINE_PATH, opponent_node_count)
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

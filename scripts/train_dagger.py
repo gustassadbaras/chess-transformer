@@ -9,24 +9,24 @@ from pathlib import Path
 from src.chess_transformer.stockfish_dataset import StockfishDataset
 from src.chess_transformer.checkpoint import load_checkpoint
 from src.chess_transformer.experiment_tracker import Experiment
+from src.chess_transformer.dataset_manager import DatasetDirectory
 from .train import LossTracker # should make a module with utility funcitons for this, not keep it in train.py
 
 def parse_args():
     parser = argparse.ArgumentParser(description="DAgger training")
 
     parser.add_argument(
-        "--model-path", type=Path,
-        default=Path("models/model.pth")
+        "model-path", type=Path,
     )
     parser.add_argument(
-        "--original-dataset-path", type=Path,
-        default=Path("data/relabeled/combined_train.parquet")
+        "original-dataset-name", type=Path,
     )
     parser.add_argument(
-        "--dagger-dataset-path", type=Path,
-        default=Path("data/dagger/dagger.parquet")
+        "dagger-dataset-name", type=Path,
     )
 
+    # NOTE: should add some documentation for specific args that need it
+    parser.add_argument("--experiment-name", default=None)
     parser.add_argument("--num-epochs", type=int, default=10)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -41,16 +41,16 @@ def parse_args():
     parser.add_argument(
         "--original-train-split-fraction", type=float, default=0.9
     )
-
     return parser.parse_args()
 
 
 args = parse_args()
 
 MODEL_PATH = args.model_path
-ORIGINAL_DATASET_PATH = args.original_dataset_path
-DAGGER_DATASET_PATH = args.dagger_dataset_path
+ORIGINAL_DATASET_PATH = DatasetDirectory(args.original_dataset_name).data_path()
+DAGGER_DATASET_PATH = DatasetDirectory(args.dagger_dataset_name).data_path()
 
+EXPERIMENT_NAME = args.experiment_name
 NUM_EPOCHS = args.num_epochs
 GLOBAL_STEPS_PER_CHECKPOINT = args.global_steps_per_checkpoint
 LEARNING_RATE = args.learning_rate
@@ -118,7 +118,7 @@ def calculate_validation_loss(model, criterion, loader, device):
 device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu")
 
-experiment = Experiment("DAgger")
+experiment = Experiment("DAgger" if not EXPERIMENT_NAME else EXPERIMENT_NAME)
 
 model, tokenizer, *_ = (
     load_checkpoint(MODEL_PATH,

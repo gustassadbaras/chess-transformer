@@ -1,34 +1,78 @@
 """
+Downloads raw data from `angeluriot/chess_games` Huggigface dataset. 
+Outputs it to 'data/raw'
+
 NOTE: This downloads (and caches) a 7.32 GB file (as of 2026-09-27)
 Ensure sufficient disk space.
 """
+from pathlib import Path
 import sys
 import math
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 from datasets import load_dataset
+import argparse
+import math
+from datetime import datetime
 
-from src.chess_transformer.paths import get_path
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Download and preprocess chess game data."
+    )
 
-if len(sys.argv) != 4:
-    print("Usage: download_data_uci.py <number_of_games> <train_fraction> <val_fraction>")
-    sys.exit(1)
+    parser.add_argument(
+        "num-games",
+        type=int,
+        help="Number of games to download and process.",
+    )
 
-N = int(sys.argv[1])
-train_fraction, val_fraction = (float(a) for a in sys.argv[2:4])
+    parser.add_argument(
+        "train-fraction",
+        type=float,
+        help="Fraction of games assigned to the training set.",
+    )
+
+    # train-fraction is sufficient, this is just for extra protection from mistyping and such
+    parser.add_argument(
+        "val-fraction",
+        type=float,
+        help="Fraction of games assigned to the validation set.",
+    )
+
+    args = parser.parse_args()
+
+    if not math.isclose(args.train_fraction + args.val_fraction, 1.0):
+        parser.error("train_fraction and val_fraction must sum to 1.")
+
+    if args.number_of_games <= 0:
+        parser.error("number_of_games must be positive.")
+
+    if not (0 <= args.train_fraction <= 1 and 0 <= args.val_fraction <= 1):
+        parser.error("train_fraction and val_fraction must be between 0 and 1.")
+
+    return args
+
+args = parse_args()
+
+N = args.number_of_games
+train_fraction = args.train_fraction
+val_fraction = args.val_fraction
+
+RAW_DATA_DIR = Path("data/raw")
 
 if not math.isclose(train_fraction + val_fraction, 1.0):
     print("Error: dataset fractions must sum to 1.")
     sys.exit(1)
 
-dataset = load_dataset("angeluriot/chess_games", split="train")
-total = len(dataset)
+huggingface_dataset = load_dataset("angeluriot/chess_games", split="train")
+total = len(huggingface_dataset)
 if N > total:
     print(f"Error: requested {N} games but dataset only has {total}.")
     sys.exit(1)
 
-col = dataset.data.table.column("moves_uci")
+
+col = huggingface_dataset.data.table.column("moves_uci")
 chunks = col.chunks
 offsets = np.cumsum([0] + [len(c) for c in chunks])
 
@@ -38,9 +82,10 @@ rng = np.random.default_rng(42)
 perm = rng.permutation(total)
 train_count = int(train_fraction * N)
 val_count = N - train_count
+date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 splits = {
-    get_path("train", "processed"):   perm[:train_count],
-    get_path("val", "processed"):     perm[train_count:train_count + val_count],
+    RAW_DATA_DIR / f"angeluriot_train_{date_str}.parquet":  perm[:train_count],
+    RAW_DATA_DIR / f"angeluriot_val_{date_str}.parquet":    perm[train_count:train_count + val_count],
 }
 
 def gather(idx):

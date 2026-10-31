@@ -1,3 +1,6 @@
+"""
+NOTE: this module is deprecated (indefinitely). 
+"""
 import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
@@ -7,7 +10,7 @@ import numpy as np
 import math
 import os
 
-from src.chess_transformer.paths import get_path
+from src.chess_transformer.dataset_manager import DatasetDirectory
 import config
 
 
@@ -131,19 +134,21 @@ def encode_board(board, ds):
     return tok[0]
 
 class ChessDataset(Dataset):
-    def __init__(self, dataset_type, tokenizer):
+    def __init__(self, dataset_name, tokenizer):
         self.tokenizer = tokenizer
         self.vocab_size = len(tokenizer.output_token2id)
 
-        processed_path = get_path(dataset_type, "processed")
-        flat_save_path = get_path(dataset_type, "cached", cache_type="flat")
-        offset_save_path = get_path(dataset_type, "cached", cache_type="offset")
-        if os.path.exists(flat_save_path) and os.path.exists(offset_save_path):
-            print(f"Loading cached dataset ({dataset_type})")
+        dataset_directory = DatasetDirectory(dataset_name)
+
+        processed_path = dataset_directory.data_path()
+        flat_save_path = dataset_directory.cache_path("flat")
+        offsets_save_path = dataset_directory.cache_path("offsets")
+        if os.path.exists(flat_save_path) and os.path.exists(offsets_save_path):
+            print(f"Loading cached dataset ({dataset_name})")
             self.flat_tokens = np.load(flat_save_path)
-            self.offsets = np.load(offset_save_path)
+            self.offsets = np.load(offsets_save_path)
         else:
-            print(f"Loading {dataset_type} dataset for the first time")
+            print(f"Loading ({dataset_name}) dataset for the first time")
             game_chunks = []
             game_lengths = []
 
@@ -170,7 +175,7 @@ class ChessDataset(Dataset):
             np.cumsum(game_lengths, out=self.offsets[1:])
 
             np.save(flat_save_path, self.flat_tokens)
-            np.save(offset_save_path, self.offsets)
+            np.save(offsets_save_path, self.offsets)
 
         self.flat_tokens = np.ascontiguousarray(self.flat_tokens, dtype=np.int32)
         self.offsets = np.ascontiguousarray(self.offsets, dtype=np.int64)
