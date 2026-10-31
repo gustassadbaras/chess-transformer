@@ -39,7 +39,7 @@ def load_checkpoint(checkpoint_path, device):
 
     optimizer = torch.optim.Adam(
         model.parameters(),
-        lr=config.LEARNING_RATE
+        lr=config.LEARNING_RATE # this is bad, lr should ideally be saved in checkpoints
     )
     optimizer.load_state_dict(
         checkpoint['optimizer_state_dict']

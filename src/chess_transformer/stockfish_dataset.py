@@ -2,13 +2,11 @@ import torch
 from torch.utils.data import Dataset
 import pyarrow.parquet as pq
 
-from .paths import get_path
 from .simulator import encode_fen
 
 class StockfishDataset(Dataset):
-    def __init__(self, dataset_type, tokenizer):
-        processed_path = get_path(dataset_type, "relabeled")
-        table = pq.read_table(processed_path, columns=["fen", "best_uci"], memory_map=True)
+    def __init__(self, parquet_path, tokenizer):
+        table = pq.read_table(parquet_path, columns=["fen", "best_uci"], memory_map=True)
         self.fens = table.column("fen")
         self.moves = table.column("best_uci")
         self.tokenizer = tokenizer

@@ -14,9 +14,9 @@ ESTIMATE_ILLEGAL_PROBABILITY_MASS = False
 GAMES_PER_WINRATE_ESTIMATE = 10
 
 # Transformer settings
-NUM_LAYERS = 6
-NUM_HEADS = 6
-D_MODEL = 144 # Must be a multiple of NUM_HEADS
+NUM_LAYERS = 8
+NUM_HEADS = 8
+D_MODEL = 256 # Must be a multiple of NUM_HEADS
 BOARD_SEQUENCE_LENGTH = 70
 
 # Engine settings

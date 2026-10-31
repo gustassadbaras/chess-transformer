@@ -20,9 +20,10 @@ def _predict_next_token(x, legal_token_ids, model):
     mask = torch.full_like(logits, float("-inf"))
     mask[list(legal_token_ids)] = 0
 
-    probabilities = torch.softmax(logits + mask, dim=-1)
+    # probabilities = torch.softmax(logits + mask, dim=-1)
+    # return torch.multinomial(probabilities, 1).item()
 
-    return torch.multinomial(probabilities, 1).item()
+    return torch.argmax(logits + mask, dim=-1)
 
 def construct_board_from_token_ids(token_ids, tokenizer):
     board = chess.Board()
@@ -93,7 +94,7 @@ def make_engine_move(engine, board, seconds_per_engine_move):
 def make_model_move(model, tokenizer, board):
     model_move_token = generate_move(board, model, tokenizer)
 
-    model_move_uci = tokenizer.decode([model_move_token])[0]
+    model_move_uci = tokenizer.decode([model_move_token.item()])[0]
     board.push_uci(model_move_uci)
 
 # Returns final board state and -1 if engine won, 0 if draw and 1 if model won
