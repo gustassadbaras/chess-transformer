@@ -1,6 +1,7 @@
 data/**
 models/**
 experiments/**
+exploratory_scripts/**
 scripts/test.py
 notes.md
 todo.md
