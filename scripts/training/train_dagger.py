@@ -16,13 +16,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description="DAgger training")
 
     parser.add_argument(
-        "model-path", type=Path,
+        "--model-path", type=Path, required=True,
     )
     parser.add_argument(
-        "original-dataset-name", type=Path,
+        "--original-dataset-name", type=Path, required=True,
     )
     parser.add_argument(
-        "dagger-dataset-name", type=Path,
+        "--dagger-dataset-name", type=Path, required=True,
     )
 
     # NOTE: should add some documentation for specific args that need it
@@ -163,7 +163,6 @@ for epoch in range(NUM_EPOCHS):
     model.train()
         
     for batch in train_loader:
-        print("batch")
         global_step += 1
         inputs, targets = batch
         inputs = inputs.to(device)
