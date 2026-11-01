@@ -5,7 +5,7 @@ NOTE: I probably shouldn't write notes here, also: "original-dataset-path" sound
 """
 import torch
 import torch.nn as nn
-from torch.utils.data import BatchSampler, DataLoader
+from torch.utils.data import BatchSampler, DataLoader, DataLoader, ConcatDataset, random_split
 import torch.optim as optim
 
 import argparse
@@ -24,7 +24,10 @@ def parse_args():
         "--model-path", type=Path, required=True,
     )
     parser.add_argument(
-        "--original-dataset-name", type=Path, required=True,
+        "--original-train-dataset-name", type=Path, required=True,
+    )
+    parser.add_argument(
+        "--original-val-dataset-name", type=Path, required=True,
     )
     parser.add_argument(
         "--dagger-dataset-name", type=Path, required=True,
@@ -43,15 +46,13 @@ def parse_args():
     parser.add_argument(
         "--dagger-train-split-fraction", type=float, default=0.8
     )
-    parser.add_argument(
-        "--original-train-split-fraction", type=float, default=0.9
-    )
     return parser.parse_args()
 
 args = parse_args()
 
 MODEL_PATH = args.model_path
-ORIGINAL_DATASET_PATH = DatasetDirectory(args.original_dataset_name).data_path()
+ORIGINAL_TRAIN_DATASET_PATH = DatasetDirectory(args.original_train_dataset_name).data_path()
+ORIGINAL_VAL_DATASET_PATH = DatasetDirectory(args.original_val_dataset_name).data_path()
 DAGGER_DATASET_PATH = DatasetDirectory(args.dagger_dataset_name).data_path()
 
 EXPERIMENT_NAME = args.experiment_name
@@ -65,11 +66,6 @@ DAGGER_FRACTION = args.dagger_fraction
 DAGGER_TRAIN_VAL_SPLIT = [
     args.dagger_train_split_fraction,
     1 - args.dagger_train_split_fraction
-]
-
-ORIGINAL_TRAIN_VAL_SPLIT = [
-    args.original_train_split_fraction,
-    1 - args.original_train_split_fraction
 ]
 
 class MixedBatchSampler(BatchSampler):
@@ -130,18 +126,12 @@ model, tokenizer, *_ = (
                     device))
 print("Checkpoint loaded...")
 
-original_dataset = StockfishDataset(ORIGINAL_DATASET_PATH, tokenizer)
+original_train = StockfishDataset(ORIGINAL_TRAIN_DATASET_PATH, tokenizer)
+original_val = StockfishDataset(ORIGINAL_VAL_DATASET_PATH, tokenizer)
 dagger_dataset = StockfishDataset(DAGGER_DATASET_PATH, tokenizer)
-
-from torch.utils.data import (
-    DataLoader, ConcatDataset, random_split
-)
 
 dagger_train, dagger_val = random_split(
     dagger_dataset, DAGGER_TRAIN_VAL_SPLIT
-)
-original_train, original_val = random_split(
-    original_dataset, ORIGINAL_TRAIN_VAL_SPLIT
 )
 
 train_dataset = ConcatDataset([dagger_train, original_train])
