@@ -1,3 +1,8 @@
+"""
+NOTE: I probably shouldn't write notes here, also: "original-dataset-path" sounds confusing. 
+"pretraining-dataset-path" might be better
+
+"""
 import torch
 import torch.nn as nn
 from torch.utils.data import BatchSampler, DataLoader
@@ -42,7 +47,6 @@ def parse_args():
         "--original-train-split-fraction", type=float, default=0.9
     )
     return parser.parse_args()
-
 
 args = parse_args()
 
@@ -117,12 +121,14 @@ def calculate_validation_loss(model, criterion, loader, device):
 
 device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}.")
 
 experiment = Experiment("DAgger" if not EXPERIMENT_NAME else EXPERIMENT_NAME)
 
 model, tokenizer, *_ = (
     load_checkpoint(MODEL_PATH,
                     device))
+print("Checkpoint loaded...")
 
 original_dataset = StockfishDataset(ORIGINAL_DATASET_PATH, tokenizer)
 dagger_dataset = StockfishDataset(DAGGER_DATASET_PATH, tokenizer)
@@ -152,6 +158,7 @@ train_loader = DataLoader(
 
 dagger_val_loader = DataLoader(dagger_val, batch_size=BATCH_SIZE)
 original_val_loader = DataLoader(original_val, batch_size=BATCH_SIZE)
+print("Datasets and loaders set up...")
 
 optimizer = optim.Adam(model.parameters(), 
                        lr=LEARNING_RATE)
@@ -159,6 +166,7 @@ criterion = nn.CrossEntropyLoss()
 
 train_loss_tracker = LossTracker()
 global_step = 0
+print("Starting training...")
 for epoch in range(NUM_EPOCHS):
     model.train()
         
