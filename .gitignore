@@ -2,6 +2,7 @@ data/**
 models/**
 experiments/**
 exploratory_scripts/**
+comparisons/**
 scripts/test.py
 notes.md
 todo.md
