@@ -61,8 +61,8 @@ OUTPUT_PATH = dataset_directory.data_path()
 dataset_directory.update_metadata(opponent_min_node_count=OPPONENT_MIN_NODE_COUNT,
                                   opponent_max_node_count=OPPONENT_MAX_NODE_COUNT,
                                   labeller_node_count=LABELLER_NODE_COUNT,
-                                  min_opponent_node_count=OPPONENT_MIN_NODE_COUNT,
-                                  max_opponent_node_count=OPPONENT_MAX_NODE_COUNT)
+                                  pretrained_model_checkpoint_path=CHECKPOINT_PATH,
+                                  openings_path=OPENINGS_PATH)
 
 model_lock = threading.Lock()
 
@@ -83,10 +83,23 @@ def play_dagger_game(model, tokenizer, engine_path, engine_node_count, opening_f
 
         def model_move():
             with model_lock, torch.no_grad():
-                make_model_move(model, tokenizer, board)
+                return make_model_move(model, tokenizer, board)
+
+        def make_model_move_and_record():
+            fen = board.fen(en_passant="fen")
+
+            best = labeler.play(
+                board,
+                chess.engine.Limit(nodes=LABELLER_NODE_COUNT)
+            ).move
+
+            model_move_uci = model_move()
+
+            rows.append((fen, best.uci(), model_move_uci))
+
 
         if random.random() < 0.5:
-            model_move()
+            make_model_move_and_record()
 
         while not board.is_game_over():
             make_engine_move(opponent, board, engine_node_count)
@@ -94,10 +107,7 @@ def play_dagger_game(model, tokenizer, engine_path, engine_node_count, opening_f
             if board.is_game_over():
                 break
 
-            best = labeler.play(board, chess.engine.Limit(nodes=LABELLER_NODE_COUNT)).move
-            rows.append((board.fen(en_passant="fen"), best.uci()))
-
-            model_move()
+            make_model_move_and_record()
     finally:
         opponent.quit()
         labeler.quit()
@@ -172,6 +182,6 @@ if __name__ == "__main__":
                 bar.set_postfix(positions=len(all_rows), failed=failed)
                 bar.update(1)
 
-    df = pd.DataFrame(all_rows, columns=["fen", "best_uci"])
+    df = pd.DataFrame(all_rows, columns=["fen", "best_uci", "model_uci"])
     df.to_parquet(OUTPUT_PATH, index=False)
     print(f"Saved {len(df)} positions from {NUM_GAMES - failed} games to {OUTPUT_PATH}")

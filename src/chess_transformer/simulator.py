@@ -97,6 +97,8 @@ def make_model_move(model, tokenizer, board):
     model_move_uci = tokenizer.decode([model_move_token.item()])[0]
     board.push_uci(model_move_uci)
 
+    return model_move_uci
+
 # Returns final board state and -1 if engine won, 0 if draw and 1 if model won
 def simulate_game(model, tokenizer, engine_path, elo, seconds_per_engine_move):
     engine = chess.engine.SimpleEngine.popen_uci(engine_path)

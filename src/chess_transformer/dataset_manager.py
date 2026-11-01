@@ -1,4 +1,6 @@
 """
+NOTE: could add some write_file() function here, and throw an exception if there is an attempt to override a file. 
+
 Each dataset has a dedicated direcotry inside data/datasets.
 data/datasets/<name>/data.parquet - the primary data file. Other scripts generally assume this file is a kind of 'interface' to this dataset, its core
 ... (additional info to be added)
