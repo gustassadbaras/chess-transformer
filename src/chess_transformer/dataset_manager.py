@@ -48,8 +48,23 @@ class DatasetDirectory:
             "git_dirty": bool(git("status", "--porcelain")),
         }
 
+    @classmethod
+    def list_datasets(cls, relative_paths= False) -> list[str | Path]:
+        if not cls.ROOT.exists():
+            return []
+
+        datasets = sorted(p for p in cls.ROOT.iterdir() if p.is_dir())
+
+        if relative_paths:
+            return [p.relative_to(cls.ROOT) for p in datasets]
+
+        return [p.name for p in datasets]
+
     def exists(self) -> bool:
         return self.path.is_dir()
+
+    def directory_path(self) -> Path:
+        return self.path
 
     def data_path(self) -> Path:
         return self.path / "data.parquet"
@@ -68,7 +83,12 @@ class DatasetDirectory:
         return self.path / "metadata.json"
 
     def metadata(self) -> dict:
-        with self.metadata_path().open("r", encoding="utf-8") as f:
+        path = self.metadata_path()
+
+        if not path.exists():
+            return {}
+
+        with path.open("r", encoding="utf-8") as f:
             return json.load(f)
 
     def update_metadata(self, **kwargs):

@@ -21,16 +21,16 @@ def parse_args():
     parser = argparse.ArgumentParser(description="DAgger training")
 
     parser.add_argument(
-        "--model-path", type=Path, required=True,
+        "--m", "--model-path", dest="model_path", type=Path, required=True,
     )
     parser.add_argument(
-        "--original-train-dataset-name", type=Path, required=True,
+        "--ot", "--original-train-dataset-name",dest="original_train_dataset_name", type=Path, required=True,
     )
     parser.add_argument(
-        "--original-val-dataset-name", type=Path, required=True,
+        "--ov", "--original-val-dataset-name",dest="original_val_dataset_name", type=Path, required=True,
     )
     parser.add_argument(
-        "--dagger-dataset-name", type=Path, required=True,
+        "--da", "--dagger-dataset-name", dest="dagger_dataset_name", type=Path, required=True,
     )
 
     # NOTE: should add some documentation for specific args that need it
@@ -53,7 +53,8 @@ args = parse_args()
 MODEL_PATH = args.model_path
 ORIGINAL_TRAIN_DATASET_PATH = DatasetDirectory(args.original_train_dataset_name).data_path()
 ORIGINAL_VAL_DATASET_PATH = DatasetDirectory(args.original_val_dataset_name).data_path()
-DAGGER_DATASET_PATH = DatasetDirectory(args.dagger_dataset_name).data_path()
+dagger_dataset_directory = DatasetDirectory(args.dagger_dataset_name)
+DAGGER_DATASET_PATH = dagger_dataset_directory.data_path()
 
 EXPERIMENT_NAME = args.experiment_name
 NUM_EPOCHS = args.num_epochs
@@ -126,7 +127,19 @@ model, tokenizer, *_ = (
                     device))
 print("Checkpoint loaded...")
 
-original_train = StockfishDataset(ORIGINAL_TRAIN_DATASET_PATH, tokenizer)
+# finding all datasets of type "dagger" and concatenating them (except for the current DAgger dataset)
+old_dagger_datasets = []
+for dataset_path in DatasetDirectory.list_datasets(relative_paths=True):
+     dataset_directory = DatasetDirectory(dataset_path)
+     if (dataset_directory.metadata().get("type", "no_type") == "dagger"
+         and dataset_path != dagger_dataset_directory.directory_path()
+     ):
+        old_dagger_datasets.append(StockfishDataset(dataset_directory.data_path(), tokenizer))
+
+original_train = ConcatDataset(
+    [StockfishDataset(ORIGINAL_TRAIN_DATASET_PATH, tokenizer)] 
+    + old_dagger_datasets)
+
 original_val = StockfishDataset(ORIGINAL_VAL_DATASET_PATH, tokenizer)
 dagger_dataset = StockfishDataset(DAGGER_DATASET_PATH, tokenizer)
 
@@ -148,7 +161,7 @@ train_loader = DataLoader(
 
 dagger_val_loader = DataLoader(dagger_val, batch_size=BATCH_SIZE)
 original_val_loader = DataLoader(original_val, batch_size=BATCH_SIZE)
-print("Datasets and loaders set up...")
+print(f"Datasets and loaders set up. Using {len(old_dagger_datasets)} previous DAgger datasets in train dataset.")
 
 optimizer = optim.Adam(model.parameters(), 
                        lr=LEARNING_RATE)

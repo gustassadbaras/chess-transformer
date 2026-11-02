@@ -1,5 +1,8 @@
 """
 Creates a new dataset containing model's games against stockfish, labelled by expert (stockfish), used for DAgger fine-tuning. 
+
+Example:
+    python -m scripts.data_handling.generate_dagger_data "models/model.pth" "dagger_v1" "data/raw/openings_fen.parquet" --num-games 10000  
 """
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -39,8 +42,8 @@ def parse_args():
     parser.add_argument("--num-games", type=int, default=5000)
     parser.add_argument("--num-workers", type=int, default=8)
     parser.add_argument("--labeller-nodes", type=int, default=10000)
-    parser.add_argument("--opponent-min-nodes", type=int, default=1000)
-    parser.add_argument("--opponent-max-nodes", type=int, default=10000)
+    parser.add_argument("--opponent-min-nodes", type=int, default=100)
+    parser.add_argument("--opponent-max-nodes", type=int, default=2000)
 
     return parser.parse_args()
 
@@ -62,7 +65,8 @@ dataset_directory.update_metadata(opponent_min_node_count=OPPONENT_MIN_NODE_COUN
                                   opponent_max_node_count=OPPONENT_MAX_NODE_COUNT,
                                   labeller_node_count=LABELLER_NODE_COUNT,
                                   pretrained_model_checkpoint_path=CHECKPOINT_PATH,
-                                  openings_path=OPENINGS_PATH)
+                                  openings_path=OPENINGS_PATH,
+                                  type="dagger")
 
 model_lock = threading.Lock()
 
