@@ -190,7 +190,7 @@ def train(checkpoint_path=None):
     criterion = nn.CrossEntropyLoss()
 
     train_data_path = DatasetDirectory(config.TRAIN_DATASET_NAME).data_path()
-    train_set = StockfishDataset(config.TRAIN_DATASET_NAME  , tokenizer)
+    train_set = StockfishDataset(train_data_path , tokenizer)
 
     if distributed:
         train_sampler = DistributedSampler(

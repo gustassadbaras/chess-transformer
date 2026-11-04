@@ -161,7 +161,7 @@ train_loader = DataLoader(
 
 dagger_val_loader = DataLoader(dagger_val, batch_size=BATCH_SIZE)
 original_val_loader = DataLoader(original_val, batch_size=BATCH_SIZE)
-print(f"Datasets and loaders set up. Using {len(old_dagger_datasets)} previous DAgger datasets in train dataset.")
+print(f"Datasets and loaders set up. Using {len(old_dagger_datasets)} previous DAgger dataset(s) in train dataset.")
 
 optimizer = optim.Adam(model.parameters(), 
                        lr=LEARNING_RATE)
@@ -194,10 +194,13 @@ for epoch in range(NUM_EPOCHS):
             with torch.no_grad():
                 dagger_val_loss = calculate_validation_loss(model, criterion, dagger_val_loader, device)
                 original_val_loss = calculate_validation_loss(model, criterion, original_val_loader, device)
-                print(f"[EPOCH {epoch}]",
+                checkpoint_str = (f"[EPOCH {epoch}, global step {global_step}]",
                     f"\n\tTrain loss: {train_loss_tracker.mean}",
                     f"\n\tDAgger val loss: {dagger_val_loss}",
                     f"\n\tOriginal val loss: {original_val_loss}")
+                print(checkpoint_str)
+                experiment.logger.info(checkpoint_str)
+
 
                 experiment.save_checkpoint(model, optimizer, tokenizer,
                             epoch, global_step, dagger_val_loader)

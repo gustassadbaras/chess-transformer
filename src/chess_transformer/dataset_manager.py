@@ -79,6 +79,11 @@ class DatasetDirectory:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    def _json_default(obj):
+        if isinstance(obj, Path):
+            return obj.as_posix()
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
     def metadata_path(self) -> Path:
         return self.path / "metadata.json"
 
@@ -101,7 +106,7 @@ class DatasetDirectory:
         tmp_path = path.with_suffix(".tmp")
 
         with tmp_path.open("w", encoding="utf-8") as f:
-            json.dump(metadata, f, indent=4, default=str)
+            json.dump(metadata, f, indent=4, default=self._json_default)
             f.write("\n")
 
         tmp_path.replace(path)
